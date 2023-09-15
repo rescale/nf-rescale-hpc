@@ -1,13 +1,39 @@
-# nf-rescale-hpc plugin 
- 
-This project contains a simple Nextflow plugin called `nf-rescale-hpc` which provides examples of different plugin extensions:
+# Rescale Nextflow Plugin
+This project contains a simple Nextflow plugin called `nf-rescale-hpc` which is an rescale version of `nf-hello` used a starting point to create a custom Rescale Executor Plugin. The plugin contains:
 
+- A custom Rescale function called `hifromrescale` that outputs `Hello, Welcome to Rescale`
 - A custom trace observer that prints a message when the workflow starts and when the workflow completes
 - A custom channel factory called `reverse`
 - A custom operator called `goodbye`
 - A custom function called `randomString`
 
-NOTE: If you want to use this project as a starting point for a custom plugin, you must rename the `plugins/nf-rescale-hpc` folder and update `settings.gradle` with your plugin name.
+## Example Implementation
+In `example` directory, there is a simple nextflow script called `hello-rescale.nf`. The following script implements rescale custom function `hifromrescale` to showcase how the plugin can be implemented.
+
+To run the `example` locally with a local Nextflow, configure a local Nextflow build with the following steps:
+
+1. Clone the Nextflow repository in your computer into a sibling directory:
+    ```bash
+    git clone --depth 1 https://github.com/nextflow-io/nextflow ../nextflow
+    ```
+  
+2. Configure the plugin build to use the local Nextflow code:
+    ```bash
+    echo "includeBuild('../nextflow')" >> settings.gradle
+    ```
+  
+   (Make sure to not add it more than once!)
+
+3. Compile the plugin alongside the Nextflow code:
+    ```bash
+    make compile
+    ```
+
+4. Run Nextflow with the plugin, using `./launch.sh` as a drop-in replacement for the `nextflow` command, and adding the option `-plugins nf-rescale-hpc` to load the plugin:
+    ```bash
+    ./launch.sh run example/hello-rescale.nf -plugins nf-rescale-hpc
+    ```
+
 
 ## Plugin structure
                     
