@@ -111,4 +111,9 @@ class HelloExtension extends PluginExtensionPoint {
         new Random().with {(1..length).collect {(('a'..'z')).join(null)[ nextInt((('a'..'z')).join(null).length())]}.join(null)}
     }
 
+    @Function
+    String hifromrescale(){
+        return "Hello, Welcome to Rescale"
+    }
+
 }
