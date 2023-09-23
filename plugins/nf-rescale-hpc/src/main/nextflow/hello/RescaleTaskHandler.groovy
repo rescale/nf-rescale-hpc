@@ -16,21 +16,24 @@ import nextflow.processor.TaskStatus
 class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
     private RescaleExecutor executor
 
-    // private HttpURLConnection rescaleConnection
-
 
     RescaleTaskHandler(TaskRun task, RescaleExecutor executor) {
         super(task)
         this.executor = executor
-        // this.rescaleConnection = executor.getRescaleConnection()
     }
 
-    private Map<String,String> createJob() {
-        HttpURLConnection connection = new URL("$executor.RESCALE_PLATFORM_URL/api/v2/jobs/").openConnection() as HttpURLConnection
+    protected HttpURLConnection createConnection(String endpoint) {
+        HttpURLConnection connection = new URL("${executor.RESCALE_PLATFORM_URL}${endpoint}").openConnection() as HttpURLConnection
+        connection.setRequestProperty('Authorization', "Token $executor.RESCALE_CLUSTER_TOKEN")
+
+        return connection
+    }
+
+    protected Map<String,String> createJob() {
+        HttpURLConnection connection = this.createConnection('/api/v2/jobs/')
         connection.setRequestMethod('POST')
 
         // Header
-        connection.setRequestProperty('Authorization', "Token $executor.RESCALE_CLUSTER_TOKEN")
         connection.setRequestProperty('Content-Type', 'application/json')
 
         connection.doOutput = true
@@ -46,7 +49,7 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
                         "code": "user_included",
                         "version": "0"
                     },
-                    "command": "echo 1",
+                    "command": "echo \\"First Job Run\\"",
                     "hardware": {
                         "coreType": "emerald",
                         "coresPerSlot": 1
@@ -60,117 +63,41 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
             writer -> writer.write(bodyJson)
         }
 
-        if (connection.getResponseCode() > 200 && connection.getResponseCode() < 400) {
+        if (connection.getResponseCode() >= 200 && connection.getResponseCode() < 400) {
             def slurper = new JsonSlurper()
             def content = slurper.parseText(connection.inputStream.text)
-            println "Content: $content"
 
             return content
 
         } else {
-            // Chance of being empty?
-            def errorMessage = connection.errorStream.text
-
-            throw new Exception("Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}\nError Message: $errorMessage")
+            def errorMessage = "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
+            
+            if (connection.errorStream != null) {
+                errorMessage += "\nError Message: $connection.errorStream.text"
+            }
+    
+            throw new Exception(errorMessage)
         }
     }
 
     private void submitJob(String jobId) {
-        def connection = new URL("$executor.RESCALE_PLATFORM_URL/api/v2/jobs/$jobId/submit/").openConnection() as HttpURLConnection
-        connection.setRequestProperty('Authorization', "Token $executor.RESCALE_CLUSTER_TOKEN")
+        def connection = this.createConnection("/api/v2/jobs/$jobId/submit/")
         connection.setRequestMethod('POST')
 
         connection.doInput = true
 
-        if (connection.getResponseCode() > 200 && connection.getResponseCode() < 400) {
-            // No response so this point it threw an error
-            def submitContent = connection.inputStream.text
-            println "Submit Content: $submitContent"
+        if (connection.getResponseCode() >= 200 && connection.getResponseCode() < 400) {
+            log.trace "[Rescale Executor]: Job $jobId Submitted"
         } else {
-             // Chance of being empty?
-            def errorMessage = connection.errorStream.text
-
-            throw new Exception("Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}\nError Message: $errorMessage")
+            def errorMessage = "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
+            
+            if (connection.errorStream != null) {
+                errorMessage += "\nError Message: $connection.errorStream.text"
+            }
+    
+            throw new Exception(errorMessage)
         }
     }
-
-    // void callRescale() {
-    //     HttpURLConnection connection = new URL("$executor.RESCALE_PLATFORM_URL/api/v2/jobs/").openConnection() as HttpURLConnection
-    //     connection.setRequestMethod('POST')
-
-    //     // Header
-    //     connection.setRequestProperty('Authorization', "Token $executor.RESCALE_CLUSTER_TOKEN")
-    //     connection.setRequestProperty('Content-Type', 'application/json')
-
-    //     connection.doOutput = true
-    //     connection.doInput = true
-
-    //     // Body
-    //     def bodyJson = '''
-    //     {
-    //         "name": "Example Job",
-    //         "jobanalyses": [
-    //             {
-    //                 "analysis": {
-    //                     "code": "user_included",
-    //                     "version": "0"
-    //                 },
-    //                 "command": "echo 1",
-    //                 "hardware": {
-    //                     "coreType": "emerald",
-    //                     "coresPerSlot": 1
-    //                 }
-    //             }
-    //         ]
-    //     }
-    //     '''
-
-    //     connection.outputStream.withWriter {
-    //         writer -> writer.write(bodyJson)
-    //     }
-
-    //     if (connection.getResponseCode() > 200 && connection.getResponseCode() < 400) {
-    //         def slurper = new JsonSlurper()
-    //         def content = slurper.parseText(connection.inputStream.text)
-    //         println "Content: $content"
-
-    //         def jobId = content['id']
-
-    //         def submitUrl = new URL("https://platform-dev.rescale.com/api/v2/jobs/$jobId/submit/")
-
-    //         def submitConnection = submitUrl.openConnection() as HttpURLConnection
-    //         submitConnection.setRequestMethod('POST')
-
-    //         submitConnection.setRequestProperty('Authorization', 'Token dc07ae15c5c7ad04639262786f8b4ed8a74d0f36')
-
-    //         submitConnection.doInput = true
-
-    //         if (connection.getResponseCode() > 200 && connection.getResponseCode() < 400) {
-    //             // No response so this point it threw an error
-    //             def submitContent = submitConnection.inputStream.text
-    //             println "Submit Content: $submitContent"
-    //         } else {
-    //             println "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
-
-    //             // Read the error stream and print it
-    //             def errorStream = connection.errorStream
-    //             if (errorStream != null) {
-    //                 def errorMessage = errorStream.text
-    //                 println "Error Message: $errorMessage"
-    //             }
-    //         }
-
-    //     } else {
-    //         println "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
-
-    //         // Read the error stream and print it
-    //         def errorStream = connection.errorStream
-    //         if (errorStream != null) {
-    //             def errorMessage = errorStream.text
-    //             println "Error Message: $errorMessage"
-    //         }
-    //     }
-    // }
 
     @Override
     void submit() {
