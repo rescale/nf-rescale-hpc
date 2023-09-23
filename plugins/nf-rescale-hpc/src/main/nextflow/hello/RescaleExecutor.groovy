@@ -27,14 +27,13 @@ class RescaleExecutor extends Executor implements ExtensionPoint {
 
     protected String RESCALE_PLATFORM_URL
 
-    // @PackageScope
-    // private HttpURLConnection rescaleConnection
+    protected String getRESCALE_CLUSTER_TOKEN() {
+        return this.RESCALE_CLUSTER_TOKEN
+    }
 
-    // @PackageScope
-    // HttpURLConnection getRescaleConnection() {
-    //     rescaleConnection
-    // }
-
+    protected String getRESCALE_PLATFORM_URL() {
+        return this.RESCALE_PLATFORM_URL
+    }
 
     private void getEnviromentVariable() {
         Map<String,String> environment = System.getenv()
@@ -50,17 +49,10 @@ class RescaleExecutor extends Executor implements ExtensionPoint {
 
     }
 
-    // Create a potential rescaleClient
-    // private void createRescaleConnection() {
-    //     rescaleConnection = new URL("$RESCALE_PLATFORM_URL/api/v2/jobs/").openConnection() as HttpURLConnection
-    //     rescaleConnection.setRequestProperty("Authorization', 'Token $RESCALE_CLUSTER_TOKEN")
-    // }
-
     @Override
     protected void register() {
         super.register()
         getEnviromentVariable()
-        // createRescaleConnection()
     }
 
 
