@@ -35,6 +35,27 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         return connection
     }
 
+    protected String jobInformation() {
+        return """
+        {
+            "name": "Example Job V2",
+            "jobanalyses": [
+                {
+                    "analysis": {
+                        "code": "user_included",
+                        "version": "0"
+                    },
+                    "command": "${task.script.trim()}",
+                    "hardware": {
+                        "coreType": "emerald",
+                        "coresPerSlot": 1
+                    }
+                }
+            ]
+        }
+        """
+    }
+
     protected Map<String,String> createJob() {
         HttpURLConnection connection = this.createConnection('/api/v2/jobs/')
         connection.setRequestMethod('POST')
@@ -46,24 +67,7 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         connection.doInput = true
 
         // Body
-        def bodyJson = '''
-        {
-            "name": "Example Job V2",
-            "jobanalyses": [
-                {
-                    "analysis": {
-                        "code": "user_included",
-                        "version": "0"
-                    },
-                    "command": "sleep 600; echo \\"First Job Run!\\"",
-                    "hardware": {
-                        "coreType": "emerald",
-                        "coresPerSlot": 1
-                    }
-                }
-            ]
-        }
-        '''
+        def bodyJson = jobInformation()
 
         connection.outputStream.withWriter {
             writer -> writer.write(bodyJson)
