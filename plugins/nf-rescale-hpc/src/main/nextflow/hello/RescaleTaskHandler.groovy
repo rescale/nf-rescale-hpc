@@ -8,6 +8,7 @@ import nextflow.fusion.FusionAwareTask
 import nextflow.processor.TaskRun
 import nextflow.processor.TaskHandler
 import nextflow.processor.TaskStatus
+import nextflow.exception.AbortOperationException
 
 
 
@@ -15,6 +16,8 @@ import nextflow.processor.TaskStatus
 @Slf4j
 class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
     private RescaleExecutor executor
+
+    protected volatile String jobId
 
 
     RescaleTaskHandler(TaskRun task, RescaleExecutor executor) {
@@ -42,14 +45,14 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         // Body
         def bodyJson = '''
         {
-            "name": "Example Job",
+            "name": "Example Job V2",
             "jobanalyses": [
                 {
                     "analysis": {
                         "code": "user_included",
                         "version": "0"
                     },
-                    "command": "echo \\"First Job Run\\"",
+                    "command": "sleep 600; echo \\"First Job Run!\\"",
                     "hardware": {
                         "coreType": "emerald",
                         "coresPerSlot": 1
@@ -76,7 +79,7 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
                 errorMessage += "\nError Message: $connection.errorStream.text"
             }
     
-            throw new Exception(errorMessage)
+            throw new AbortOperationException(errorMessage)
         }
     }
 
@@ -95,7 +98,30 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
                 errorMessage += "\nError Message: $connection.errorStream.text"
             }
     
-            throw new Exception(errorMessage)
+            throw new AbortOperationException(errorMessage)
+        }
+    }
+
+    protected List<Map<String,String>> getStatuses(String jobId) {
+        def connection = this.createConnection("/api/v2/jobs/$jobId/statuses/")
+        connection.setRequestMethod('GET')
+
+        connection.doInput = true
+
+        if (connection.getResponseCode() >= 200 && connection.getResponseCode() < 400) {
+            def slurper = new JsonSlurper()
+            def content = slurper.parseText(connection.inputStream.text)
+            
+            return content['results']
+
+        } else {
+            def errorMessage = "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
+            
+            if (connection.errorStream != null) {
+                errorMessage += "\nError Message: $connection.errorStream.text"
+            }
+    
+            throw new AbortOperationException(errorMessage)
         }
     }
 
@@ -106,33 +132,62 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
         // Rescale Job
         def content = this.createJob()
-        def jobId = content['id']
+        jobId = content['id']
+
         this.submitJob(jobId)
 
         task.stdout = task.script
         task.exitStatus = 0
     }
 
+    private List<String> RUNNING_AND_COMPLETED = ["Completed", "Executing", "Validated", "Started", "Queued", "Pending", "Waiting for Queue", "Stopping"]
+    private final String COMPLETED = "Completed"
+    private final String STOPPING = "Stopping"
+
     @Override
     boolean checkIfRunning() {
-        if (isSubmitted()) {
-            status = TaskStatus.RUNNING
-            return true
+        if(!jobId || !isSubmitted()) {
+            return false
         }
 
-        return false
+        def jobStatus = getStatuses(jobId)[0]["status"]
+        def result = jobStatus in RUNNING_AND_COMPLETED
+
+        if (result) {
+            log.info "[Rescale Executor] Job $jobId is running"
+            status = TaskStatus.RUNNING
+        }
+        
+        return result
     }
 
     @Override
     boolean checkIfCompleted() {
-        if (isRunning()) {
-            status = TaskStatus.COMPLETED
-            return true
+        assert jobId
+        if ( !isRunning()) {
+            return false
         }
-        return false
+
+
+        def jobStatus = getStatuses(jobId).collect { it["status"] }
+        def result = COMPLETED in jobStatus
+        def terminated = STOPPING in jobStatus
+
+        if (terminated) {
+            throw new AbortOperationException("Error: Job $jobId has stopped")
+        }
+
+        if (result) {
+            log.info "[Rescale Executor] Job $jobId is completed"
+            status = TaskStatus.COMPLETED
+        }
+
+        return result
     }
 
     @Override
-    void kill() {}
+    void kill() {
+
+    }
 
 }
