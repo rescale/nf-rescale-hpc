@@ -8,7 +8,7 @@ process hello {
   x = hifromrescale()
   
   """
-  echo $x
+  sleep 600; echo $x
   """
 }
 

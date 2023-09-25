@@ -30,6 +30,7 @@ class RescaleTaskHandlerTest extends Specification {
         def task = Mock(TaskRun)
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             createConnection(_) >> httpURLConnection
+            jobInformation() >> "{}"
         }
 
 
@@ -60,6 +61,8 @@ class RescaleTaskHandlerTest extends Specification {
         def task = Mock(TaskRun)
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             createConnection(_) >> httpURLConnection
+            jobInformation() >> "{}"
+
         }
 
 
@@ -355,4 +358,44 @@ class RescaleTaskHandlerTest extends Specification {
         then: 'throw an exception'
         thrown(AssertionError)
     }
+
+    def 'should return proper json when jobInformation called'() {
+        given: "a RescaleTaskHandler"
+        def executor = Mock(RescaleExecutor) {
+            getRESCALE_PLATFORM_URL() >> "https://example.com"
+            getRESCALE_CLUSTER_TOKEN() >> "test_token"
+        }
+
+        // Spy on class
+        def task = Mock(TaskRun) {
+            script >> "echo Hello World"
+        }
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor])
+        
+
+        when: 'checkIfCompleted is called'
+        def value = handlerSpy.jobInformation()
+
+
+        then: 'return false'
+        value == '''
+        {
+            "name": "Example Job V2",
+            "jobanalyses": [
+                {
+                    "analysis": {
+                        "code": "user_included",
+                        "version": "0"
+                    },
+                    "command": "echo Hello World",
+                    "hardware": {
+                        "coreType": "emerald",
+                        "coresPerSlot": 1
+                    }
+                }
+            ]
+        }
+        '''
+    }
+
 }
