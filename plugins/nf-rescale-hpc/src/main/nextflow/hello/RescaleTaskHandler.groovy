@@ -19,6 +19,9 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
     protected volatile String jobId
 
+    protected String setJobId(String jobId) { this.jobId = jobId }
+
+
 
     RescaleTaskHandler(TaskRun task, RescaleExecutor executor) {
         super(task)
@@ -131,10 +134,11 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         status = TaskStatus.SUBMITTED
 
         // Rescale Job
-        def content = this.createJob()
-        jobId = content['id']
+        def content = createJob()
+        
+        setJobId(content['id'])
 
-        this.submitJob(jobId)
+        submitJob(jobId)
 
         task.stdout = task.script
         task.exitStatus = 0
