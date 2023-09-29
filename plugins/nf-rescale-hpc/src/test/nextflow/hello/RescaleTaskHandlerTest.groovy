@@ -25,13 +25,17 @@ class RescaleTaskHandlerTest extends Specification {
             getOutputStream() >> outputStream
             getResponseCode() >> 200
         }
-            
+
+        def jobConfig = Mock(RescaleJob) {
+            jobConfigurationJson() >> "{}"
+        }
+
         // Spy on class
         def task = Mock(TaskRun)
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             createConnection(_) >> httpURLConnection
-            jobInformation() >> "{}"
         }
+        handlerSpy.metaClass.setProperty(handlerSpy, 'rescaleJobConfig', jobConfig)
 
 
         when: 'createJob is called'
@@ -56,14 +60,17 @@ class RescaleTaskHandlerTest extends Specification {
             getResponseMessage() >> "Bad Request"
             getResponseCode() >> 400
         }
+
+        def jobConfig = Mock(RescaleJob) {
+            jobConfigurationJson() >> "{}" 
+        }
             
         // Spy on class
         def task = Mock(TaskRun)
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             createConnection(_) >> httpURLConnection
-            jobInformation() >> "{}"
-
         }
+        handlerSpy.metaClass.setProperty(handlerSpy, 'rescaleJobConfig', jobConfig)
 
 
         when: 'createJob is called incorrectly'
@@ -359,43 +366,74 @@ class RescaleTaskHandlerTest extends Specification {
         thrown(AssertionError)
     }
 
-    def 'should return proper json when jobInformation called'() {
-        given: "a RescaleTaskHandler"
+    def 'should attach storage to job when attachStorage is called' () {
+         given: 'a RescaleTaskHandler'
         def executor = Mock(RescaleExecutor) {
             getRESCALE_PLATFORM_URL() >> "https://example.com"
             getRESCALE_CLUSTER_TOKEN() >> "test_token"
         }
+        
+        // Mock HttpURLConnection
+        def inputStream = new ByteArrayInputStream('{"id":"storage123"}'.getBytes())
+        def outputStream = new ByteArrayOutputStream()
+        def httpURLConnection = Mock(HttpURLConnection) {
+            getInputStream() >> inputStream
+            getOutputStream() >> outputStream
+            getResponseCode() >> 200
+        }
+
+        def jobConfig = Mock(RescaleJob) {
+            storageConfigurationJson() >> "{}"
+        }
 
         // Spy on class
-        def task = Mock(TaskRun) {
-            script >> "echo Hello World"
+        def task = Mock(TaskRun)
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+            createConnection(_) >> httpURLConnection
         }
-        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor])
-        
-
-        when: 'checkIfCompleted is called'
-        def value = handlerSpy.jobInformation()
+        handlerSpy.metaClass.setProperty(handlerSpy, 'rescaleJobConfig', jobConfig)
 
 
-        then: 'return false'
-        value == '''
-        {
-            "name": "Example Job V2",
-            "jobanalyses": [
-                {
-                    "analysis": {
-                        "code": "user_included",
-                        "version": "0"
-                    },
-                    "command": "echo Hello World",
-                    "hardware": {
-                        "coreType": "emerald",
-                        "coresPerSlot": 1
-                    }
-                }
-            ]
-        }
-        '''
+        when: 'attachStorage is called'
+        def content = handlerSpy.attachStorage()
+
+        then: 'return a storage details' 
+            content == ["id":"storage123"]
     }
 
+    def 'attachStorage should throw an exception' () {
+        given: 'a RescaleTaskHandler'
+        def executor = Mock(RescaleExecutor) {
+            getRESCALE_PLATFORM_URL() >> "https://example.com"
+            getRESCALE_CLUSTER_TOKEN() >> "test_token"
+        }
+        
+        // Mock HttpURLConnection
+        def outputStream = new ByteArrayOutputStream()
+        def httpURLConnection = Mock(HttpURLConnection) {
+            getOutputStream() >> outputStream
+            getResponseMessage() >> "Bad Request"
+            getResponseCode() >> 400
+        }
+
+        def jobConfig = Mock(RescaleJob) {
+            storageConfigurationJson() >> "{}" 
+        }
+            
+        // Spy on class
+        def task = Mock(TaskRun)
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+            createConnection(_) >> httpURLConnection
+        }
+        handlerSpy.metaClass.setProperty(handlerSpy, 'rescaleJobConfig', jobConfig)
+
+
+        when: 'attachStorage is called incorrectly'
+        def content = handlerSpy.attachStorage()
+
+        then: 'throw an exception' 
+            Exception e  = thrown()
+            e.message == "Error: 400 - Bad Request"
+
+    }
 }
