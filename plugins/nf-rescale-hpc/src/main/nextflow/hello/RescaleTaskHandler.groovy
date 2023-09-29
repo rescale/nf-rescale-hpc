@@ -21,11 +21,12 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
     protected String setJobId(String jobId) { this.jobId = jobId }
 
-
+    protected RescaleJob rescaleJobConfig
 
     RescaleTaskHandler(TaskRun task, RescaleExecutor executor) {
         super(task)
         this.executor = executor
+        this.rescaleJobConfig = new RescaleJob(task)
     }
 
     protected HttpURLConnection createConnection(String endpoint) {
@@ -33,27 +34,6 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         connection.setRequestProperty('Authorization', "Token $executor.RESCALE_CLUSTER_TOKEN")
 
         return connection
-    }
-
-    protected String jobInformation() {
-        return """
-        {
-            "name": "Example Job V2",
-            "jobanalyses": [
-                {
-                    "analysis": {
-                        "code": "user_included",
-                        "version": "0"
-                    },
-                    "command": "${task.script.trim()}",
-                    "hardware": {
-                        "coreType": "emerald",
-                        "coresPerSlot": 1
-                    }
-                }
-            ]
-        }
-        """
     }
 
     protected Map<String,String> createJob() {
@@ -67,7 +47,7 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         connection.doInput = true
 
         // Body
-        def bodyJson = jobInformation()
+        def bodyJson = rescaleJobConfig.jobConfigurationJson()
 
         connection.outputStream.withWriter {
             writer -> writer.write(bodyJson)
@@ -132,6 +112,41 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         }
     }
 
+    protected Map<String,String> attachStorage(String jobId) {
+        def connection = this.createConnection("/api/v2/jobs/$jobId/storage-devices/")
+        connection.setRequestMethod('POST')
+
+        // Header
+        connection.setRequestProperty('Content-Type', 'application/json')
+
+        connection.doOutput = true
+        connection.doInput = true
+
+        // Body
+        def bodyJson = rescaleJobConfig.storageConfigurationJson()
+
+        connection.outputStream.withWriter {
+            writer -> writer.write(bodyJson)
+        }
+
+        if (connection.getResponseCode() >= 200 && connection.getResponseCode() < 400) {
+            def slurper = new JsonSlurper()
+            def content = slurper.parseText(connection.inputStream.text)
+
+            println content
+            return content
+
+        } else {
+            def errorMessage = "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
+            
+            if (connection.errorStream != null) {
+                errorMessage += "\nError Message: $connection.errorStream.text"
+            }
+    
+            throw new AbortOperationException(errorMessage)
+        }
+    }
+
     @Override
     void submit() {
         task.workDir = Paths.get('.').complete() // Don't know the purpose
@@ -142,6 +157,7 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         
         setJobId(content['id'])
 
+        attachStorage(jobId)
         submitJob(jobId)
 
         task.stdout = task.script
