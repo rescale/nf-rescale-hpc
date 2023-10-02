@@ -1,9 +1,13 @@
 package nextflow.hello
 
+import java.io.File
+
+import groovy.util.logging.Slf4j
+
 import nextflow.processor.TaskRun
 import nextflow.exception.AbortOperationException
 
-
+@Slf4j
 class RescaleJob {
     
     protected TaskRun task 
@@ -52,14 +56,35 @@ class RescaleJob {
         """
     }
 
+    protected String findStorageId() {
+        def dir = new File(System.getProperty("user.home"))
+        def filePattern = ~/storage_.*/
+
+        def storageDir = dir.listFiles().find { File file -> 
+            file.isDirectory() && file.name ==~ filePattern
+        }
+
+        if (storageDir) {
+            String[] parts = storageDir.name.split("_")
+            log.info "Directory Found: ${parts}"
+            
+            return parts[1]
+        } else {
+            log.error "Directory not found"
+        }
+
+    }
+
     protected String storageConfigurationJson() {
-        if (task.config.ext.storageId == null) {
-            throw new AbortOperationException("Error: HPS Storage is not set. Set storageId using ext.storageId in process directives.")
+        def storageId = findStorageId()
+
+        if (storageId == null) {
+            throw new AbortOperationException("Can't find storageId")
         }
 
         return """
         {
-            "storageDevice": { "id": "${task.config.ext.storageId}" }
+            "storageDevice": { "id": "${storageId}" }
         }
         """
     }

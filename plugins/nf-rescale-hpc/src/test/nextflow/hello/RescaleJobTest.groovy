@@ -79,13 +79,11 @@ class RescaleJobTest extends Specification {
 
     def 'should return proper json for storage configuration when storageConfigurationJson called'() {
         given: "a RescaleJob"
-        def taskConfig = new TaskConfig()
-        taskConfig.ext = ["storageId":"test123"]
 
-        def task = Mock(TaskRun) {
-            config >> taskConfig
+        def task = Mock(TaskRun)
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task]) {
+            findStorageId() >> "test123"
         }
-        def handlerSpy = Spy(RescaleJob, constructorArgs: [task])
         
 
         when: 'storageConfigurationJson is called'
@@ -104,14 +102,10 @@ class RescaleJobTest extends Specification {
         given: "a RescaleJob"
 
         // Spy on class
-        def taskConfig = new TaskConfig()
-
-        def task = Mock(TaskRun) {
-            name >> "test123"
-            script >> "echo Hello World"
-            config >> taskConfig
+        def task = Mock(TaskRun)
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task]) {
+            findStorageId() >> null
         }
-        def handlerSpy = Spy(RescaleJob, constructorArgs: [task])
         
 
         when: 'storageConfigurationJson is called'
