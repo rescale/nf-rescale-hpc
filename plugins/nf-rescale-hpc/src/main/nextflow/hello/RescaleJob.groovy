@@ -30,6 +30,10 @@ class RescaleJob {
         if (task.config.machineType == null) {
             errorMessages << "Error: Hardware type is not set in process. Set hardware type using machineType in process directives."
         }
+        // Rescale License defaults to false
+        if (task.config.ext.rescaleLicense == null) {
+            task.config.ext.rescaleLicense = false
+        }
 
         if (!errorMessages.isEmpty()) {
             throw new AbortOperationException(errorMessages.join("\n"))
@@ -44,7 +48,8 @@ class RescaleJob {
                         "code": "${task.config.ext.analysisCode}",
                         "version": "${task.config.ext.analysisVersion}"
                     },
-                    "useRescaleLicense": true,
+                    "useRescaleLicense": ${task.config.ext.rescaleLicense},
+                    "envVars": {},
                     "command": "${task.script.trim()}",
                     "hardware": {
                         "coreType": "${task.config.machineType}",

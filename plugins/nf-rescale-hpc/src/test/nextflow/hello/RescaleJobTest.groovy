@@ -17,7 +17,7 @@ class RescaleJobTest extends Specification {
 
         // Spy on class
         def taskConfig = new TaskConfig()
-        taskConfig.ext = ["analysisCode":"testCode", "analysisVersion":"testVersion"]
+        taskConfig.ext = ["analysisCode":"testCode", "analysisVersion":"testVersion", "rescaleLicense":"true"]
         taskConfig.cpus = 123
         taskConfig.machineType = "testMachine"
 
@@ -44,6 +44,7 @@ class RescaleJobTest extends Specification {
                         "version": "testVersion"
                     },
                     "useRescaleLicense": true,
+                    "envVars": {},
                     "command": "echo Hello World",
                     "hardware": {
                         "coreType": "testMachine",
