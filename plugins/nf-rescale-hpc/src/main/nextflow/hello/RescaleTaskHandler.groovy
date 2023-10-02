@@ -157,7 +157,7 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         
         setJobId(content['id'])
 
-        attachStorage(jobId)
+        // attachStorage(jobId)
         submitJob(jobId)
 
         task.stdout = task.script
