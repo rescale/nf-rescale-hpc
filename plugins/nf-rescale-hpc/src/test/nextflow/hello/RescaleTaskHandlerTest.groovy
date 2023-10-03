@@ -9,14 +9,26 @@ import nextflow.processor.TaskStatus
 import spock.lang.Specification
 
 class RescaleTaskHandlerTest extends Specification {
+
+    def 'should assign environmental variables' () {
+        given: 'a RescaleTaskHandler'
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun) {
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+        }
+
+        when: 'getConfigEnviromentVariable is called'
+        handlerSpy.getConfigEnviromentVariable()
+
+        then: 'environmental variable is set'
+        handlerSpy.RESCALE_PLATFORM_URL == "https://example.com"
+        handlerSpy.RESCALE_CLUSTER_TOKEN == "test_token"
+    }
     
     def 'should create an example rescale job' () {
         given: 'a RescaleTaskHandler'
-        def executor = Mock(RescaleExecutor) {
-            getRESCALE_PLATFORM_URL() >> "https://example.com"
-            getRESCALE_CLUSTER_TOKEN() >> "test_token"
-        }
-        
         // Mock HttpURLConnection
         def inputStream = new ByteArrayInputStream('{"id":"job123"}'.getBytes())
         def outputStream = new ByteArrayOutputStream()
@@ -31,7 +43,10 @@ class RescaleTaskHandlerTest extends Specification {
         }
 
         // Spy on class
-        def task = Mock(TaskRun)
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun) {
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             createConnection(_) >> httpURLConnection
         }
@@ -48,11 +63,6 @@ class RescaleTaskHandlerTest extends Specification {
 
     def 'createJob should throw an exception' () {
         given: 'a RescaleTaskHandler'
-        def executor = Mock(RescaleExecutor) {
-            getRESCALE_PLATFORM_URL() >> "https://example.com"
-            getRESCALE_CLUSTER_TOKEN() >> "test_token"
-        }
-        
         // Mock HttpURLConnection
         def outputStream = new ByteArrayOutputStream()
         def httpURLConnection = Mock(HttpURLConnection) {
@@ -66,7 +76,10 @@ class RescaleTaskHandlerTest extends Specification {
         }
             
         // Spy on class
-        def task = Mock(TaskRun)
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun)  {
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             createConnection(_) >> httpURLConnection
         }
@@ -84,11 +97,6 @@ class RescaleTaskHandlerTest extends Specification {
 
     def 'should start a rescale job' () {
         given: 'a RescaleTaskHandler'
-        def executor = Mock(RescaleExecutor) {
-            getRESCALE_PLATFORM_URL() >> "https://example.com"
-            getRESCALE_CLUSTER_TOKEN() >> "test_token"
-        }
-        
         // Mock HttpURLConnection
         def inputStream = new ByteArrayInputStream(''.getBytes())
         def httpURLConnection = Mock(HttpURLConnection) {
@@ -97,7 +105,10 @@ class RescaleTaskHandlerTest extends Specification {
         }
             
         // Spy on class
-        def task = Mock(TaskRun)
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun)  {
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             createConnection(_) >> httpURLConnection
         }
@@ -112,11 +123,6 @@ class RescaleTaskHandlerTest extends Specification {
 
     def 'submitJob should throw an exception' () {
         given: 'a RescaleTaskHandler'
-        def executor = Mock(RescaleExecutor) {
-            getRESCALE_PLATFORM_URL() >> "https://example.com"
-            getRESCALE_CLUSTER_TOKEN() >> "test_token"
-        }
-        
         // Mock HttpURLConnection
         def httpURLConnection = Mock(HttpURLConnection) {
             getResponseMessage() >> "Bad Request"
@@ -124,7 +130,10 @@ class RescaleTaskHandlerTest extends Specification {
         }
             
         // Spy on class
-        def task = Mock(TaskRun)
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun) {
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             createConnection(_) >> httpURLConnection
         }
@@ -140,11 +149,6 @@ class RescaleTaskHandlerTest extends Specification {
 
      def 'should get status of an example rescale job' () {
         given: 'a RescaleTaskHandler'
-        def executor = Mock(RescaleExecutor) {
-            getRESCALE_PLATFORM_URL() >> "https://example.com"
-            getRESCALE_CLUSTER_TOKEN() >> "test_token"
-        }
-        
         // Mock HttpURLConnection
         def inputStream = new ByteArrayInputStream('{"results":[{"status":"Completed"}]}'.getBytes())
         def httpURLConnection = Mock(HttpURLConnection) {
@@ -153,7 +157,10 @@ class RescaleTaskHandlerTest extends Specification {
         }
             
         // Spy on class
-        def task = Mock(TaskRun)
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun)  {
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             createConnection(_) >> httpURLConnection
         }
@@ -169,11 +176,7 @@ class RescaleTaskHandlerTest extends Specification {
 
     def 'getStatuses should throw an exception' () {
         given: 'a RescaleTaskHandler'
-        def executor = Mock(RescaleExecutor) {
-            getRESCALE_PLATFORM_URL() >> "https://example.com"
-            getRESCALE_CLUSTER_TOKEN() >> "test_token"
-        }
-        
+        def executor = Mock(RescaleExecutor)
         // Mock HttpURLConnection
         def httpURLConnection = Mock(HttpURLConnection) {
             getResponseMessage() >> "Bad Request"
@@ -181,7 +184,9 @@ class RescaleTaskHandlerTest extends Specification {
         }
             
         // Spy on class
-        def task = Mock(TaskRun)
+        def task = Mock(TaskRun) {
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             createConnection(_) >> httpURLConnection
         }
@@ -197,13 +202,11 @@ class RescaleTaskHandlerTest extends Specification {
 
     def 'should return true and status RUNNING when job has status' () {
         given: 'a RescaleTaskHandler'
-        def executor = Mock(RescaleExecutor) {
-            getRESCALE_PLATFORM_URL() >> "https://example.com"
-            getRESCALE_CLUSTER_TOKEN() >> "test_token"
-        }
-
         // Spy on class
-        def task = Mock(TaskRun)
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun) {
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             getStatuses(_) >> [["status":"Pending"]]
             isSubmitted() >> true
@@ -222,13 +225,11 @@ class RescaleTaskHandlerTest extends Specification {
 
     def 'should return false when the job is not submitted' () {
         given: 'a RescaleTaskHandler'
-        def executor = Mock(RescaleExecutor) {
-            getRESCALE_PLATFORM_URL() >> "https://example.com"
-            getRESCALE_CLUSTER_TOKEN() >> "test_token"
-        }
-
         // Spy on class
-        def task = Mock(TaskRun)
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun) {
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             getStatuses(_) >> []
             isSubmitted() >> false
@@ -247,13 +248,11 @@ class RescaleTaskHandlerTest extends Specification {
 
     def 'should return false when the jobId is null' () {
         given: 'a RescaleTaskHandler'
-        def executor = Mock(RescaleExecutor) {
-            getRESCALE_PLATFORM_URL() >> "https://example.com"
-            getRESCALE_CLUSTER_TOKEN() >> "test_token"
-        }
-
+        def executor = Mock(RescaleExecutor)
         // Spy on class
-        def task = Mock(TaskRun)
+        def task = Mock(TaskRun)  {
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             getStatuses(_) >> []
             isSubmitted() >> true
@@ -272,13 +271,11 @@ class RescaleTaskHandlerTest extends Specification {
 
     def 'should return true and status COMPLETED' () {
         given: 'a RescaleTaskHandler'
-        def executor = Mock(RescaleExecutor) {
-            getRESCALE_PLATFORM_URL() >> "https://example.com"
-            getRESCALE_CLUSTER_TOKEN() >> "test_token"
-        }
-
         // Spy on class
-        def task = Mock(TaskRun)
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun) {
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             getStatuses(_) >> [["status":"Completed"]]
             isRunning() >> true
@@ -297,13 +294,11 @@ class RescaleTaskHandlerTest extends Specification {
 
     def 'should throw an error when job is mannual stopped' () {
         given: 'a RescaleTaskHandler'
-        def executor = Mock(RescaleExecutor) {
-            getRESCALE_PLATFORM_URL() >> "https://example.com"
-            getRESCALE_CLUSTER_TOKEN() >> "test_token"
-        }
-
         // Spy on class
-        def task = Mock(TaskRun)
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun) {
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             getStatuses(_) >> [["status":"Stopping"]]
             isRunning() >> true
@@ -322,13 +317,11 @@ class RescaleTaskHandlerTest extends Specification {
 
     def 'should return false when a job is not running' () {
         given: 'a RescaleTaskHandler'
-        def executor = Mock(RescaleExecutor) {
-            getRESCALE_PLATFORM_URL() >> "https://example.com"
-            getRESCALE_CLUSTER_TOKEN() >> "test_token"
-        }
-
         // Spy on class
-        def task = Mock(TaskRun)
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun) {
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             isRunning() >> false
         }
@@ -346,13 +339,11 @@ class RescaleTaskHandlerTest extends Specification {
 
     def 'should throw an error when jobId is null' () {
         given: 'a RescaleTaskHandler'
-        def executor = Mock(RescaleExecutor) {
-            getRESCALE_PLATFORM_URL() >> "https://example.com"
-            getRESCALE_CLUSTER_TOKEN() >> "test_token"
-        }
-
         // Spy on class
-        def task = Mock(TaskRun)
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun) {
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             isRunning() >> true
         }
@@ -368,11 +359,7 @@ class RescaleTaskHandlerTest extends Specification {
 
     def 'should attach storage to job when attachStorage is called' () {
          given: 'a RescaleTaskHandler'
-        def executor = Mock(RescaleExecutor) {
-            getRESCALE_PLATFORM_URL() >> "https://example.com"
-            getRESCALE_CLUSTER_TOKEN() >> "test_token"
-        }
-        
+        def executor = Mock(RescaleExecutor)
         // Mock HttpURLConnection
         def inputStream = new ByteArrayInputStream('{"id":"storage123"}'.getBytes())
         def outputStream = new ByteArrayOutputStream()
@@ -387,7 +374,9 @@ class RescaleTaskHandlerTest extends Specification {
         }
 
         // Spy on class
-        def task = Mock(TaskRun)
+        def task = Mock(TaskRun) {
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             createConnection(_) >> httpURLConnection
         }
@@ -403,11 +392,6 @@ class RescaleTaskHandlerTest extends Specification {
 
     def 'attachStorage should throw an exception' () {
         given: 'a RescaleTaskHandler'
-        def executor = Mock(RescaleExecutor) {
-            getRESCALE_PLATFORM_URL() >> "https://example.com"
-            getRESCALE_CLUSTER_TOKEN() >> "test_token"
-        }
-        
         // Mock HttpURLConnection
         def outputStream = new ByteArrayOutputStream()
         def httpURLConnection = Mock(HttpURLConnection) {
@@ -421,7 +405,10 @@ class RescaleTaskHandlerTest extends Specification {
         }
             
         // Spy on class
-        def task = Mock(TaskRun)
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun)  {
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             createConnection(_) >> httpURLConnection
         }

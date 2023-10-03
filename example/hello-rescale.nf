@@ -6,6 +6,8 @@ process hello {
   ext.storageId="bwFSc"
   machineType "emerald"
 
+  executor="rescale-executor"
+
   output:
   stdout
 

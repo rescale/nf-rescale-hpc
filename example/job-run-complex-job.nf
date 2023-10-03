@@ -6,6 +6,8 @@ process nastran {
   machineType "emerald"
   cpus 1
 
+  executor="rescale-executor"
+
   output:
   stdout
 
