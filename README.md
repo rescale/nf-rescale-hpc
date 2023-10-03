@@ -1,5 +1,51 @@
 # Rescale Nextflow Plugin
-This project contains a simple Nextflow plugin called `nf-rescale-hpc` which is an rescale version of `nf-hello` used a starting point to create a custom Rescale Executor Plugin. The plugin contains:
+This project contains Rescale's custom Nextflow executor called `nf-rescale-hpc`. Rescale Executor is used to launch Rescale Jobs using a Nextflow file and supports multiple features of Nextflow.
+
+## How to Launch a Rescale Job
+To launch a Rescale Job, the Nextflow file (.nf) should included mandatory configurations:
+
+1. Set the executor to `rescale-executor` either in nextflow.config or inside the process
+```
+process {
+  executor='rescale-executor'
+}
+```
+2. Set RESCALE_PLATFORM_URL and RESCALE_CLUSTER_TOKEN (API Token) in nextflow.config
+```
+env {
+  RESCALE_PLATFORM_URL = "https://platform.rescale.com"
+  RESCALE_CLUSTER_TOKEN = "<API KEY>"
+}
+```
+
+3. Configure the software and hardware to run the process using the directive
+```
+process nastran {
+  ext.analysisCode="msc_nastran"
+  ext.analysisVersion="2023.2"
+  ext.rescaleLicense=true
+  machineType "emerald"
+  cpus 1
+  
+  ...
+}
+```
+### Available Parameters
+
+**ext.analysisCode** (Required): The software code
+
+**ext.analysisVersion** (Required): The software version
+
+**machineType** (Required): The hardware used to run the software
+
+**cpus** (Defaults to 1): The number of cores of the hardware
+
+**ext.rescaleLicense** (Defaults to false): Whether or not to use Rescale License when running a software
+
+---
+
+
+The plugin is a rescale version of `nf-hello` used a starting point to create a custom Rescale Executor Plugin. The plugin contains:
 
 - A custom Rescale function called `hifromrescale` that outputs `Hello, Welcome to Rescale`
 - A custom trace observer that prints a message when the workflow starts and when the workflow completes
@@ -29,7 +75,12 @@ To run the `example` locally with a local Nextflow, configure a local Nextflow b
     make compile
     ```
 
-4. Run Nextflow with the plugin, using `./launch.sh` as a drop-in replacement for the `nextflow` command, and adding the option `-plugins nf-rescale-hpc` to load the plugin:
+4. Check if there is any error by running the unit test
+    ```bash
+    ./gradlew check
+    ```
+
+5. Run Nextflow with the plugin, using `./launch.sh` as a drop-in replacement for the `nextflow` command, and adding the option `-plugins nf-rescale-hpc` to load the plugin:
     ```bash
     ./launch.sh run example/hello-rescale.nf -plugins nf-rescale-hpc
     ```
