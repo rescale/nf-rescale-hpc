@@ -23,38 +23,10 @@ import org.pf4j.ExtensionPoint
 @CompileStatic
 class RescaleExecutor extends Executor implements ExtensionPoint {
 
-    protected String RESCALE_CLUSTER_TOKEN
-
-    protected String RESCALE_PLATFORM_URL
-
-    protected String getRESCALE_CLUSTER_TOKEN() {
-        return this.RESCALE_CLUSTER_TOKEN
-    }
-
-    protected String getRESCALE_PLATFORM_URL() {
-        return this.RESCALE_PLATFORM_URL
-    }
-
-    private void getEnviromentVariable() {
-        Map<String,String> environment = System.getenv()
-        if (!environment.containsKey('RESCALE_CLUSTER_TOKEN')) {
-            throw new Exception("RESCALE_CLUSTER_TOKEN env was not set")
-        }
-        if (!environment.containsKey('RESCALE_PLATFORM_URL')) {
-            throw new Exception("RESCALE_PLATFORM_URL env was not set")
-        }
-
-        RESCALE_CLUSTER_TOKEN = environment['RESCALE_CLUSTER_TOKEN']
-        RESCALE_PLATFORM_URL = environment['RESCALE_PLATFORM_URL']
-
-    }
-
     @Override
     protected void register() {
         super.register()
-        getEnviromentVariable()
     }
-
 
     @Override
     protected TaskMonitor createTaskMonitor() {

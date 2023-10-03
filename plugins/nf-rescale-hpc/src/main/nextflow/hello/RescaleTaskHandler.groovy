@@ -19,19 +19,47 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
     protected volatile String jobId
 
-    protected String setJobId(String jobId) { this.jobId = jobId }
-
     protected RescaleJob rescaleJobConfig
+
+    protected String RESCALE_CLUSTER_TOKEN
+
+    protected String RESCALE_PLATFORM_URL
+
+    protected String getRESCALE_CLUSTER_TOKEN() {
+        return this.RESCALE_CLUSTER_TOKEN
+    }
+
+    protected String getRESCALE_PLATFORM_URL() {
+        return this.RESCALE_PLATFORM_URL
+    }
+
+    protected String setJobId(String jobId) { this.jobId = jobId }
 
     RescaleTaskHandler(TaskRun task, RescaleExecutor executor) {
         super(task)
         this.executor = executor
         this.rescaleJobConfig = new RescaleJob(task)
+        
+        getConfigEnviromentVariable()
+    }
+
+    private void getConfigEnviromentVariable() {
+        Map<String,String> environment = task.getEnvironment()
+        if (!environment.containsKey('RESCALE_CLUSTER_TOKEN')) {
+            throw new Exception("RESCALE_CLUSTER_TOKEN env in nextflow.config was not set")
+        }
+        if (!environment.containsKey('RESCALE_PLATFORM_URL')) {
+            throw new Exception("RESCALE_PLATFORM_URL env in nextflow.config was not set")
+        }
+
+        RESCALE_CLUSTER_TOKEN = environment['RESCALE_CLUSTER_TOKEN']
+        RESCALE_PLATFORM_URL = environment['RESCALE_PLATFORM_URL']
+
     }
 
     protected HttpURLConnection createConnection(String endpoint) {
-        HttpURLConnection connection = new URL("${executor.RESCALE_PLATFORM_URL}${endpoint}").openConnection() as HttpURLConnection
-        connection.setRequestProperty('Authorization', "Token $executor.RESCALE_CLUSTER_TOKEN")
+        HttpURLConnection connection = new URL("${RESCALE_PLATFORM_URL}${endpoint}").openConnection() as HttpURLConnection
+        connection.setRequestProperty('Authorization', "Token $RESCALE_CLUSTER_TOKEN")
 
         return connection
     }
