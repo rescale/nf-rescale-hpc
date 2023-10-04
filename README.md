@@ -30,6 +30,7 @@ process nastran {
   ...
 }
 ```
+
 ### Available Parameters
 
 **ext.analysisCode** (Required): The software code
@@ -41,6 +42,26 @@ process nastran {
 **cpus** (Defaults to 1): The number of cores of the hardware
 
 **ext.rescaleLicense** (Defaults to false): Whether or not to use Rescale License when running a software
+
+4. Run the following command as BYOD in Rescale as a job. Make sure to attach a storage device (HPS) alongside a directory called projectdata
+```bash
+curl -s "https://get.sdkman.io" | bash
+ source ~/.sdkman/bin/sdkman-init.sh
+ sdk install java 17.0.6-amzn
+ sdk use java 17.0.6-amzn
+ git clone https://<personal-access-token>@github.com/rescale/nf-rescale-hpc.git
+ cd nf-rescale-hpc
+ git clone --depth 1 https://github.com/nextflow-io/nextflow ../nextflow
+ echo "includeBuild('../nextflow')" >> settings.gradle
+ make compile
+ ./gradlew check
+ <move-any-files>
+ ./launch.sh run <nextflow-file>
+
+```
+As stated above replace ```<personal-access-token>``` and ```<nextflow-file>``` 
+
+Make sure to move ```nextflow.config``` and ```nextflow-file``` inside ```nf-rescale-hpc```, and move any input file into ```~/storage*/projectdata``` 
 
 ---
 
