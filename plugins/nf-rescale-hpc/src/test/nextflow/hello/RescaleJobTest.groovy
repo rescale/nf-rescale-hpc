@@ -45,7 +45,7 @@ class RescaleJobTest extends Specification {
                     },
                     "useRescaleLicense": true,
                     "envVars": {},
-                    "command": "echo Hello World",
+                    "command": "cd ~/storage*/projectdata; echo Hello World",
                     "hardware": {
                         "coreType": "testMachine",
                         "coresPerSlot": 123

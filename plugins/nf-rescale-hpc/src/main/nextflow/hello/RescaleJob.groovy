@@ -50,7 +50,7 @@ class RescaleJob {
                     },
                     "useRescaleLicense": ${task.config.ext.rescaleLicense},
                     "envVars": {},
-                    "command": "${task.script.trim()}",
+                    "command": "cd ~/storage*/projectdata; ${task.script.trim()}",
                     "hardware": {
                         "coreType": "${task.config.machineType}",
                         "coresPerSlot": ${task.config.cpus}
@@ -61,6 +61,7 @@ class RescaleJob {
         """
     }
 
+    // Temporary  HPS Solution
     protected String findStorageId() {
         def dir = new File(System.getProperty("user.home"))
         def filePattern = ~/storage_.*/
