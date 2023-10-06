@@ -3,6 +3,7 @@ package nextflow.hello
 import java.io.File
 
 import groovy.util.logging.Slf4j
+import groovy.json.JsonBuilder
 
 import nextflow.processor.TaskRun
 import nextflow.exception.AbortOperationException
@@ -15,6 +16,23 @@ class RescaleJob {
     
     RescaleJob(TaskRun task) {
         this.task = task
+    }
+
+    protected String envVarsJson() {
+        if (task.getEnvironment() == null) {
+            return "{}"
+        }
+
+        def json = new JsonBuilder(task.getEnvironment())
+
+        return json.toString()
+    }
+
+    protected String commandString() {
+        def command = "cd ~/storage*/projectdata\n" + task.script.trim().split('\n').collect { it.trim() }.join('\n')
+        def json = new JsonBuilder(command)
+
+        return json.toString()
     }
 
     protected String jobConfigurationJson() {
@@ -49,8 +67,8 @@ class RescaleJob {
                         "version": "${task.config.ext.analysisVersion}"
                     },
                     "useRescaleLicense": ${task.config.ext.rescaleLicense},
-                    "envVars": {},
-                    "command": "cd ~/storage*/projectdata; ${task.script.trim()}",
+                    "envVars": ${envVarsJson()},
+                    "command": ${commandString()},
                     "hardware": {
                         "coreType": "${task.config.machineType}",
                         "coresPerSlot": ${task.config.cpus}
