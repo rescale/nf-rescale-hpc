@@ -45,7 +45,7 @@ class RescaleJobTest extends Specification {
                     },
                     "useRescaleLicense": true,
                     "envVars": {},
-                    "command": "cd ~/storage*/projectdata; echo Hello World",
+                    "command": "cd ~/storage*/projectdata\\necho Hello World",
                     "hardware": {
                         "coreType": "testMachine",
                         "coresPerSlot": 123
@@ -116,5 +116,57 @@ class RescaleJobTest extends Specification {
         then: 'return json with correct config'
         thrown(AbortOperationException)
 
+    }
+    
+    def 'should return a structured commandString of a task when commandString is called'() {
+        given: "a RescaleJob"
+
+        def task = Mock(TaskRun) {
+            script >> """
+            export TEST=1
+            echo \$TEST 
+            """
+        }  
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task]) 
+        
+
+        when: 'commandString is called'
+        def value = handlerSpy.commandString()
+
+
+        then: 'return string with correct structure'
+        value == '"cd ~/storage*/projectdata\\nexport TEST=1\\necho \$TEST"'
+    }
+
+    def 'should return a environment variables in json format when envVarsJson is called'() {
+        given: "a RescaleJob"
+
+        def task = Mock(TaskRun) {
+            getEnvironment() >> ["TEST_ENV": "123", "TEST_ENV_1": "456"]
+        }  
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task]) 
+        
+
+        when: 'envVarsJson is called'
+        def value = handlerSpy.envVarsJson()
+
+
+        then: 'return json with correct environment'
+        value == '{"TEST_ENV":"123","TEST_ENV_1":"456"}'
+    }
+
+    def 'should return a empty environment variables in json format if nextflow env is empty'() {
+        given: "a RescaleJob"
+
+        def task = Mock(TaskRun)
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task]) 
+        
+
+        when: 'envVarsJson is called'
+        def value = handlerSpy.envVarsJson()
+
+
+        then: 'return json with correct environment'
+        value == '{}'
     }
 }
