@@ -1,6 +1,8 @@
 package nextflow.hello
 
 import java.io.File
+import java.nio.file.Path
+import java.nio.file.Paths
 
 import groovy.util.logging.Slf4j
 import groovy.json.JsonBuilder
@@ -99,12 +101,20 @@ class RescaleJob {
 
     }
 
+    protected Path getWorkDir(String storageId) {
+        def baseDir = System.getProperty("user.home")
+        
+        return Paths.get(baseDir, "storage_$storageId", "projectdata")
+    }
+
     protected String storageConfigurationJson() {
         def storageId = findStorageId()
 
         if (storageId == null) {
             throw new AbortOperationException("Can't find storageId")
         }
+
+        task.workDir = getWorkDir(storageId)
 
         return """
         {
