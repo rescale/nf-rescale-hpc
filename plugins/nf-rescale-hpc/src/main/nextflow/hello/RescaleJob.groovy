@@ -13,11 +13,18 @@ import nextflow.exception.AbortOperationException
 @Slf4j
 class RescaleJob {
     
-    protected TaskRun task 
+    private RescaleExecutor executor
+
+    protected TaskRun task
+
+    protected String storageId
+
+    protected String PROJECT_DATA = "nextflow"
     
-    
-    RescaleJob(TaskRun task) {
+    RescaleJob(TaskRun task, RescaleExecutor executor) {
         this.task = task
+        this.executor = executor
+        this.storageId = executor.getStorageId()
     }
 
     protected String envVarsJson() {
@@ -31,7 +38,7 @@ class RescaleJob {
     }
 
     protected String commandString() {
-        def command = "cd ~/storage*/projectdata\n" + task.script.trim().split('\n').collect { it.trim() }.join('\n')
+        def command = "cd ~/storage*/$PROJECT_DATA/$executor.RESCALE_JOB_ID\n" + task.script.trim().split('\n').collect { it.trim() }.join('\n')
         def json = new JsonBuilder(command)
 
         return json.toString()
@@ -81,41 +88,7 @@ class RescaleJob {
         """
     }
 
-    // Temporary  HPS Solution
-    protected String findStorageId() {
-        def dir = new File(System.getProperty("user.home"))
-        def filePattern = ~/storage_.*/
-
-        def storageDir = dir.listFiles().find { File file -> 
-            file.isDirectory() && file.name ==~ filePattern
-        }
-
-        if (storageDir) {
-            String[] parts = storageDir.name.split("_")
-            log.info "Directory Found: ${parts}"
-            
-            return parts[1]
-        } else {
-            log.error "Directory not found"
-        }
-
-    }
-
-    protected Path getWorkDir(String storageId) {
-        def baseDir = System.getProperty("user.home")
-        
-        return Paths.get(baseDir, "storage_$storageId", "projectdata")
-    }
-
     protected String storageConfigurationJson() {
-        def storageId = findStorageId()
-
-        if (storageId == null) {
-            throw new AbortOperationException("Can't find storageId")
-        }
-
-        task.workDir = getWorkDir(storageId)
-
         return """
         {
             "storageDevice": { "id": "${storageId}" }

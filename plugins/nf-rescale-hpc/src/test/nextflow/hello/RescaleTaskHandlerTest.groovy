@@ -423,4 +423,19 @@ class RescaleTaskHandlerTest extends Specification {
             e.message == "Error: 400 - Bad Request"
 
     }
+
+    def 'should initialize RescaleTaskHandler' () {
+        given: 'a RescaleTaskHandler'
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun)
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+            getConfigEnviromentVariable() >> null
+        }
+
+        when: 'initialize is called'
+        def value = handlerSpy.initialize()
+
+        then: 'return RescaleTaskHandler and calls functions'
+        value == handlerSpy
+    }
 }

@@ -22,7 +22,6 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
     protected RescaleJob rescaleJobConfig
 
     protected String RESCALE_CLUSTER_TOKEN
-
     protected String RESCALE_PLATFORM_URL
 
     protected String getRESCALE_CLUSTER_TOKEN() {
@@ -38,18 +37,27 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
     RescaleTaskHandler(TaskRun task, RescaleExecutor executor) {
         super(task)
         this.executor = executor
-        this.rescaleJobConfig = new RescaleJob(task)
-        
+        this.rescaleJobConfig = new RescaleJob(task, executor)
+    }
+    // Initalization required after constractor
+    protected RescaleTaskHandler initialize() {
         getConfigEnviromentVariable()
+
+        return this
     }
 
-    private void getConfigEnviromentVariable() {
+    protected void getConfigEnviromentVariable() {
+        List<String> errorMessages = []
+
         Map<String,String> environment = task.getEnvironment()
         if (!environment.containsKey('RESCALE_CLUSTER_TOKEN')) {
-            throw new Exception("RESCALE_CLUSTER_TOKEN env in nextflow.config was not set")
+            errorMessages << "RESCALE_CLUSTER_TOKEN env in nextflow.config was not set"
         }
         if (!environment.containsKey('RESCALE_PLATFORM_URL')) {
-            throw new Exception("RESCALE_PLATFORM_URL env in nextflow.config was not set")
+            errorMessages << "RESCALE_PLATFORM_URL env in nextflow.config was not set"
+        }
+        if (!errorMessages.isEmpty()) {
+            throw new AbortOperationException(errorMessages.join("\n"))
         }
 
         RESCALE_CLUSTER_TOKEN = environment['RESCALE_CLUSTER_TOKEN']
@@ -177,10 +185,12 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
     @Override
     void submit() {
-        task.workDir = Paths.get('.').complete() // Don't know the purpose
+        task.workDir = executor.getPublishDir()
+        log.info "[Rescale Executor] WorkDir: ${task.workDir.toString()}"
+
         status = TaskStatus.SUBMITTED
 
-        // Rescale Job
+        // Rescale Job 
         def content = createJob()
         
         setJobId(content['id'])
@@ -190,7 +200,7 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
         submitJob(jobId)
 
-        task.stdout = task.script
+        task.stdout = task.workDir.resolve(TaskRun.CMD_OUTFILE)
         task.exitStatus = 0
     }
 
