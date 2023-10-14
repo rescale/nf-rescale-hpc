@@ -4,6 +4,7 @@ import java.net.URL
 import java.net.HttpURLConnection
 
 import nextflow.processor.TaskRun
+import nextflow.processor.TaskRun
 import nextflow.processor.TaskConfig
 import nextflow.processor.TaskStatus
 import nextflow.exception.AbortOperationException
@@ -26,7 +27,10 @@ class RescaleJobTest extends Specification {
             script >> "echo Hello World"
             config >> taskConfig
         }
-        def handlerSpy = Spy(RescaleJob, constructorArgs: [task])
+        def executor = Mock(RescaleExecutor) {
+            RESCALE_JOB_ID >> 'job123'
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor])
         
 
         when: 'jobConfigurationJson is called'
@@ -45,7 +49,7 @@ class RescaleJobTest extends Specification {
                     },
                     "useRescaleLicense": true,
                     "envVars": {},
-                    "command": "cd ~/storage*/projectdata\\necho Hello World",
+                    "command": "cd ~/storage*/nextflow/job123\\necho Hello World",
                     "hardware": {
                         "coreType": "testMachine",
                         "coresPerSlot": 123
@@ -67,7 +71,8 @@ class RescaleJobTest extends Specification {
             script >> "echo Hello World"
             config >> taskConfig
         }
-        def handlerSpy = Spy(RescaleJob, constructorArgs: [task])
+        def executor = Mock(RescaleExecutor)
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor])
         
 
         when: 'jobConfigurationJson is called'
@@ -82,10 +87,10 @@ class RescaleJobTest extends Specification {
         given: "a RescaleJob"
 
         def task = Mock(TaskRun)
-        def handlerSpy = Spy(RescaleJob, constructorArgs: [task]) {
-            findStorageId() >> "test123"
+        def executor = Mock(RescaleExecutor) {
+            getStorageId() >> 'storage123'
         }
-        
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor])
 
         when: 'storageConfigurationJson is called'
         def value = handlerSpy.storageConfigurationJson()
@@ -94,28 +99,9 @@ class RescaleJobTest extends Specification {
         then: 'return json with correct config'
         value == '''
         {
-            "storageDevice": { "id": "test123" }
+            "storageDevice": { "id": "storage123" }
         }
         '''
-    }
-
-    def 'should throw an error if improper storage configuration json when storageConfigurationJson called'() {
-        given: "a RescaleJob"
-
-        // Spy on class
-        def task = Mock(TaskRun)
-        def handlerSpy = Spy(RescaleJob, constructorArgs: [task]) {
-            findStorageId() >> null
-        }
-        
-
-        when: 'storageConfigurationJson is called'
-        def value = handlerSpy.storageConfigurationJson()
-
-
-        then: 'return json with correct config'
-        thrown(AbortOperationException)
-
     }
     
     def 'should return a structured commandString of a task when commandString is called'() {
@@ -127,7 +113,10 @@ class RescaleJobTest extends Specification {
             echo \$TEST 
             """
         }  
-        def handlerSpy = Spy(RescaleJob, constructorArgs: [task]) 
+        def executor = Mock(RescaleExecutor) {
+            RESCALE_JOB_ID >> 'job123'
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) 
         
 
         when: 'commandString is called'
@@ -135,7 +124,7 @@ class RescaleJobTest extends Specification {
 
 
         then: 'return string with correct structure'
-        value == '"cd ~/storage*/projectdata\\nexport TEST=1\\necho \$TEST"'
+        value == '"cd ~/storage*/nextflow/job123\\nexport TEST=1\\necho \$TEST"'
     }
 
     def 'should return a environment variables in json format when envVarsJson is called'() {
@@ -143,8 +132,9 @@ class RescaleJobTest extends Specification {
 
         def task = Mock(TaskRun) {
             getEnvironment() >> ["TEST_ENV": "123", "TEST_ENV_1": "456"]
-        }  
-        def handlerSpy = Spy(RescaleJob, constructorArgs: [task]) 
+        }
+        def executor = Mock(RescaleExecutor)
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) 
         
 
         when: 'envVarsJson is called'
@@ -159,8 +149,9 @@ class RescaleJobTest extends Specification {
         given: "a RescaleJob"
 
         def task = Mock(TaskRun)
-        def handlerSpy = Spy(RescaleJob, constructorArgs: [task]) 
-        
+        def executor = Mock(RescaleExecutor)
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) 
+
 
         when: 'envVarsJson is called'
         def value = handlerSpy.envVarsJson()
