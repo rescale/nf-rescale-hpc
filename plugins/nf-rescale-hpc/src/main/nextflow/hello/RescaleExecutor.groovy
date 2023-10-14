@@ -102,7 +102,7 @@ class RescaleExecutor extends Executor implements ExtensionPoint {
         return path
     }
 
-    Path getPublishDir() {
+    Path getOutputDir() {
         def path = getSubDir().resolve(RESCALE_JOB_ID)
         ensureDirExists(path)
 
@@ -117,45 +117,4 @@ class RescaleExecutor extends Executor implements ExtensionPoint {
         log.trace "[Rescale Executor] Launching process > ${task.name} -- work folder: ${task.workDirStr}"
         return new RescaleTaskHandler(task, this).initialize()
     }
-}
-
-@Slf4j
-class NopeTaskHandler extends TaskHandler {
-
-    protected NopeTaskHandler(TaskRun task) {
-        super(task)
-    }
-
-    @Override
-    void submit() {
-        log.info ">> launching nope process: ${task}"
-        task.workDir = Paths.get('.').complete()
-        status = TaskStatus.SUBMITTED
-        task.stdout = task.script
-        task.exitStatus = 0
-    }
-
-    @Override
-    boolean checkIfRunning() {
-        log.debug "isRunning: $status"
-        if( isSubmitted() ) {
-            status = TaskStatus.RUNNING
-            return true
-        }
-        return false
-    }
-
-    @Override
-    boolean checkIfCompleted() {
-        log.debug "isTerminated: $status"
-        if( isRunning() ) {
-            status = TaskStatus.COMPLETED
-            return true
-        }
-        false
-    }
-
-    @Override
-    void kill() { }
-
 }

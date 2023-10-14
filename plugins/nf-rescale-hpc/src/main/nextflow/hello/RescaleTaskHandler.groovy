@@ -169,7 +169,6 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
             def slurper = new JsonSlurper()
             def content = slurper.parseText(connection.inputStream.text)
 
-            println content
             return content
 
         } else {
@@ -185,7 +184,7 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
     @Override
     void submit() {
-        task.workDir = executor.getPublishDir()
+        task.workDir = executor.getOutputDir()
         log.info "[Rescale Executor] WorkDir: ${task.workDir.toString()}"
 
         status = TaskStatus.SUBMITTED
