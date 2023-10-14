@@ -4,17 +4,27 @@ This project contains Rescale's custom Nextflow executor called `nf-rescale-hpc`
 ## How to Launch a Rescale Job
 To launch a Rescale Job, the Nextflow file (.nf) should included mandatory configurations:
 
-1. Set the executor to `rescale-executor` either in nextflow.config or inside the process
+0. To launch a Rescale Job using Nextflow ```<personal-access-token>``` and ```<API_KEY>``` are required. 
+
+    Personal Access Token can be requested from a Github account and will need the approval of IT. 
+    
+    The API_KEY can be created from a Rescale Platform
+
+1. Set the plugin to `nf-rescale-hpc` and executor to `rescale-executor` in `nextflow.config` file
 ```
+plugins {
+  id 'nf-rescale-hpc'
+}
+
 process {
   executor='rescale-executor'
 }
 ```
-2. Set RESCALE_PLATFORM_URL and RESCALE_CLUSTER_TOKEN (API Token) in nextflow.config
+2. Set RESCALE_PLATFORM_URL and RESCALE_CLUSTER_TOKEN (API Token) in `nextflow.config` file
 ```
 env {
   RESCALE_PLATFORM_URL = "https://platform.rescale.com"
-  RESCALE_CLUSTER_TOKEN = "<API KEY>"
+  RESCALE_CLUSTER_TOKEN = "<API_KEY>"
 }
 ```
 
@@ -31,7 +41,10 @@ process nastran {
 }
 ```
 
-### Available Parameters
+### Available Parameters Supported (First Pass)
+---
+
+The following parameters are currently supported and functional. The parameters supported are required for any Rescale Job, hence it was the first parameters to be supported.
 
 **ext.analysisCode** (Required): The software code
 
@@ -41,8 +54,25 @@ process nastran {
 
 **cpus** (Defaults to 1): The number of cores of the hardware
 
-**ext.rescaleLicense** (Defaults to false): Whether or not to use Rescale License when running a software
+**ext.rescaleLicense** (Defaults to false): Whether or not to use Rescale License when running a software (Custom License can be passed using Nextflow environmental values)
 
+### Future Parameters to be supported (Second Pass)
+---
+The following parameters will be supported in the next release version of Rescale Executor. The parameters are chosen due to the projection of future demands.
+
+**ext.billingPriorityValue**: Priority for job hardware
+
+**ext.userDefinedLicenseSettings**: User-defined license settings for the analysis is a definition of multiple sets of license feature counts that the user expects the analysis to use for running the job
+
+### Unsupported and Future-Excluded Parameters
+---
+The following parameters will be not be supported now or in the future, because the parameters have a Nextflow based solution.
+
+**preProcessScript**: Pre-processing script for analysis.
+
+**postProcessScript**: Post-processing script for analysis.
+
+---
 4. Run the following command as BYOD in Rescale as a job. Make sure to attach a storage device (HPS) alongside a directory called projectdata
 ```bash
 curl -s "https://get.sdkman.io" | bash
