@@ -7,7 +7,8 @@ process phase1 {
     cpus 1
 
     executor="rescale-executor"
-
+  
+  publishDir "twoprocout", mode: 'copy'
   input: 
     path x
   output:
@@ -15,8 +16,6 @@ process phase1 {
   script:
     """
     sleep 10
-    export TEST='123'
-    echo \$TEST
     cp ${x} phase1out.txt
     echo "phase 1 done" >> phase1out.txt
     """
@@ -40,6 +39,6 @@ process phase2 {
     """
 }
 workflow {
-	 Channel.fromPath("input.txt") | phase1|phase2
+	 Channel.fromPath("input.txt") | phase1 | phase2
 }
 

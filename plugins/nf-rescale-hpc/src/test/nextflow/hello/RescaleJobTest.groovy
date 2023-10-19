@@ -2,6 +2,7 @@ package nextflow.hello
 
 import java.net.URL
 import java.net.HttpURLConnection
+import java.nio.file.Paths
 
 import nextflow.processor.TaskRun
 import nextflow.processor.TaskRun
@@ -28,9 +29,12 @@ class RescaleJobTest extends Specification {
             config >> taskConfig
         }
         def executor = Mock(RescaleExecutor) {
-            RESCALE_JOB_ID >> 'job123'
+            getOutputDir() >> Paths.get('/test/dir')
         }
-        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor])
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) {
+            commandString() >> '"test command"'
+            envVarsJson() >> "{'test':'var'}"
+        }
         
 
         when: 'jobConfigurationJson is called'
@@ -48,8 +52,8 @@ class RescaleJobTest extends Specification {
                         "version": "testVersion"
                     },
                     "useRescaleLicense": true,
-                    "envVars": {},
-                    "command": "cd ~/storage*/nextflow/job123\\necho Hello World",
+                    "envVars": {'test':'var'},
+                    "command": "test command",
                     "hardware": {
                         "coreType": "testMachine",
                         "coresPerSlot": 123
@@ -114,9 +118,11 @@ class RescaleJobTest extends Specification {
             """
         }  
         def executor = Mock(RescaleExecutor) {
-            RESCALE_JOB_ID >> 'job123'
+            getOutputDir() >> Paths.get('/test/dir')
         }
-        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) 
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) {
+            getCustomAbsolutePath(_) >> Paths.get('$HOME/test/dir')
+        }
         
 
         when: 'commandString is called'
@@ -124,7 +130,7 @@ class RescaleJobTest extends Specification {
 
 
         then: 'return string with correct structure'
-        value == '"cd ~/storage*/nextflow/job123\\nexport TEST=1\\necho \$TEST"'
+        value == '"cd $HOME/test/dir\\nexport TEST=1\\necho \$TEST"'
     }
 
     def 'should return a environment variables in json format when envVarsJson is called'() {
@@ -160,4 +166,40 @@ class RescaleJobTest extends Specification {
         then: 'return json with correct environment'
         value == '{}'
     }
+
+    def 'should get a custom absolute path path if customAbsolutePath is called' () {
+        given: "a RescaleJob"
+
+        def task = Mock(TaskRun)
+        def executor = Mock(RescaleExecutor) {
+            getBaseDir() >> "/home/dir"
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor])
+
+
+        when: 'getCustomAbsolutePath is called with a home path'
+        def value = handlerSpy.getCustomAbsolutePath(Paths.get('/home/dir/test'))
+
+
+        then: 'return the custom absolute path'
+        value == Paths.get('$HOME/test')
+    }
+
+    def 'should get a custom absolute path path if customAbsolutePath is called' () {
+        given: "a RescaleJob"
+
+        def task = Mock(TaskRun)
+        def executor = Mock(RescaleExecutor) {
+            getBaseDir() >> "/home/dir"
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor])
+
+
+        when: 'getCustomAbsolutePath is called with a no home path'
+        def value = handlerSpy.getCustomAbsolutePath(Paths.get('/notHome/dir/test'))
+
+
+        then: 'return the normal absolute path'
+        value == Paths.get('/notHome/dir/test')
+    }   
 }
