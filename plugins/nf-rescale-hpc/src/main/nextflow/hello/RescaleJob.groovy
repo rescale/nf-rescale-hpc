@@ -37,8 +37,20 @@ class RescaleJob {
         return json.toString()
     }
 
+    protected Path getCustomAbsolutePath(Path path) {
+        def home = executor.getBaseDir()
+        def absolutePath = path.toAbsolutePath().normalize().toString()
+
+        if (absolutePath.startsWith(home)) {
+            absolutePath = absolutePath.replace(home, '$HOME')
+        }
+
+        return Paths.get(absolutePath)
+    }
+
     protected String commandString() {
-        def command = "cd ~/storage*/$PROJECT_DATA/$executor.RESCALE_JOB_ID\n" + task.script.trim().split('\n').collect { it.trim() }.join('\n')
+        def path = getCustomAbsolutePath(executor.getOutputDir()).toString()
+        def command = "cd $path\n" + task.script.trim().split('\n').collect { it.trim() }.join('\n')
         def json = new JsonBuilder(command)
 
         return json.toString()

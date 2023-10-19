@@ -11,10 +11,12 @@ To launch a Rescale Job, the Nextflow file (.nf) should included mandatory confi
     The API_KEY can be created from a Rescale Platform
 
 1. Set the plugin to `nf-rescale-hpc` and executor to `rescale-executor` in `nextflow.config` file
+
+**NOTE**: Currently you will need to provide the version for. (Issue unresolved) 
 ```
 plugins {
-  id 'nf-rescale-hpc'
-}
+  id 'nf-rescale-hpc@version'
+} 
 
 process {
   executor='rescale-executor'
@@ -28,9 +30,9 @@ env {
 }
 ```
 
-3. Configure the software and hardware to run the process using the directive
+3. Configure your nextflow file with the software and hardware to run the process using the directive
 ```
-process nastran {
+process <processName> {
   ext.analysisCode="msc_nastran"
   ext.analysisVersion="2023.2"
   ext.rescaleLicense=true
@@ -75,19 +77,22 @@ The following parameters will be not be supported now or in the future, because 
 ---
 4. Run the following command as BYOD in Rescale as a job. Make sure to attach a storage device (HPS) alongside a directory called projectdata
 ```bash
-curl -s "https://get.sdkman.io" | bash
- source ~/.sdkman/bin/sdkman-init.sh
- sdk install java 17.0.6-amzn
- sdk use java 17.0.6-amzn
- git clone https://<personal-access-token>@github.com/rescale/nf-rescale-hpc.git
- cd nf-rescale-hpc
- git clone --depth 1 https://github.com/nextflow-io/nextflow ../nextflow
- echo "includeBuild('../nextflow')" >> settings.gradle
- make compile
- ./gradlew check
- <move-any-files>
- ./launch.sh run <nextflow-file>
-
+curl -s "https://get.sdkman.io" | bash; 
+source ~/.sdkman/bin/sdkman-init.sh
+sdk install java 17.0.6-amzn;
+sdk default java 17.0.6-amzn
+sdk use java 17.0.6-amzn
+wget -qO- https://get.nextflow.io | bash
+chmod +x nextflow
+nf_home=$(pwd)
+git clone https:/<personal-access-token>.com/rescale/nf-rescale-hpc.git
+cd nf-rescale-hpc
+make buildPlugins
+mkdir -p ~/.nextflow/plugins
+cp -r build/plugins/* ~/.nextflow/plugins/
+<move file to where your running nextflow>
+cd ~/storage*/projectdata # cd into any shared directory the following is an example
+$nf_home/nextflow run <nextflow file>
 ```
 As stated above replace ```<personal-access-token>``` and ```<nextflow-file>``` 
 
@@ -104,7 +109,7 @@ The plugin is a rescale version of `nf-hello` used a starting point to create a 
 - A custom operator called `goodbye`
 - A custom function called `randomString`
 
-## Example Implementation
+## Example Local Implementation
 In `example` directory, there is a simple nextflow script called `hello-rescale.nf`. The following script implements rescale custom function `hifromrescale` to showcase how the plugin can be implemented.
 
 To run the `example` locally with a local Nextflow, configure a local Nextflow build with the following steps:

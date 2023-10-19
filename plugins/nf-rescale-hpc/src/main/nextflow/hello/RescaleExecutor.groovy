@@ -26,12 +26,11 @@ import org.pf4j.ExtensionPoint
 class RescaleExecutor extends Executor implements ExtensionPoint {
 
     protected String storageId
-    protected String RESCALE_JOB_ID
     protected String baseDir = System.getProperty("user.home")
-    protected String PROJECT_DATA = "nextflow"
 
     protected String getStorageId() { return storageId }
-    protected String getRESCALE_JOB_ID() { return RESCALE_JOB_ID }
+    protected String getBaseDir() { return baseDir }
+
 
     protected void setStorageId(String storageId) {
         this.storageId = storageId
@@ -41,21 +40,11 @@ class RescaleExecutor extends Executor implements ExtensionPoint {
     protected void register() {
         super.register()
         findStorageId()
-        getSystemVariable()
     }
 
     @Override
     protected TaskMonitor createTaskMonitor() {
         return TaskPollingMonitor.create(session, name, 1000, Duration.of('10 sec'))
-    }
-
-    private void getSystemVariable() {
-        Map<String,String> environment = System.getenv()
-        if (!environment.containsKey('RESCALE_JOB_ID')) {
-            throw new AbortOperationException("RESCALE_JOB_ID environment variable not found.")
-        }
-
-        RESCALE_JOB_ID = environment['RESCALE_JOB_ID']
     }
 
     void findStorageId() {
@@ -78,34 +67,8 @@ class RescaleExecutor extends Executor implements ExtensionPoint {
 
     }
 
-    protected void ensureDirExists(Path path) {
-        def dir = path.toFile()
-
-        if (!dir.exists()) {
-            dir.mkdir()
-        }
-    }
-
-    protected Path getSubDir() {
-        def path = Paths.get(baseDir, "storage_$storageId").resolve(PROJECT_DATA)
-        ensureDirExists(path)
-
-        return path
-    }
-
-    @Override
-    Path getWorkDir() {
-        def path = getSubDir().resolve(RESCALE_JOB_ID).resolve('work')
-        ensureDirExists(path)
-
-
-        return path
-    }
-
     Path getOutputDir() {
-        def path = getSubDir().resolve(RESCALE_JOB_ID)
-        ensureDirExists(path)
-
+        def path = Paths.get(".")
 
         return path
     }

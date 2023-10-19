@@ -184,7 +184,7 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
     @Override
     void submit() {
-        task.workDir = executor.getOutputDir()
+        task.workDir = executor.getOutputDir().toAbsolutePath().normalize()
         log.info "[Rescale Executor] WorkDir: ${task.workDir.toString()}"
 
         status = TaskStatus.SUBMITTED
