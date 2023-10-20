@@ -12,10 +12,10 @@ To launch a Rescale Job, the Nextflow file (.nf) should included mandatory confi
 
 1. Set the plugin to `nf-rescale-hpc` and executor to `rescale-executor` in `nextflow.config` file
 
-**NOTE**: Currently you will need to provide the version for. (Issue unresolved) 
+**NOTE**: Currently you will need to provide the version for the executor (Default 0.4.0). (Issue unresolved) 
 ```
 plugins {
-  id 'nf-rescale-hpc@version'
+  id 'nf-rescale-hpc@<version>'
 } 
 
 process {
@@ -90,7 +90,7 @@ cd nf-rescale-hpc
 make buildPlugins
 mkdir -p ~/.nextflow/plugins
 cp -r build/plugins/* ~/.nextflow/plugins/
-<move file to where your running nextflow>
+<move file to where you are running nextflow>
 cd ~/storage*/projectdata # cd into any shared directory the following is an example
 $nf_home/nextflow run <nextflow file>
 ```
