@@ -14,8 +14,11 @@ process echoEnv {
 
     script:
     """
+    export PATH=$PATH:/new/path
+    echo \$PATH
     echo \$TEST_ENV
     echo \$TEST_ENV_2
+    printenv
     """
 
 }

@@ -1,6 +1,7 @@
 package nextflow.hello
 
 import java.nio.file.Paths
+import java.nio.file.Path
 
 import groovy.json.JsonSlurper
 import groovy.util.logging.Slf4j
@@ -8,6 +9,7 @@ import nextflow.fusion.FusionAwareTask
 import nextflow.processor.TaskRun
 import nextflow.processor.TaskHandler
 import nextflow.processor.TaskStatus
+import nextflow.executor.BashWrapperBuilder
 import nextflow.exception.AbortOperationException
 
 
@@ -16,6 +18,22 @@ import nextflow.exception.AbortOperationException
 @Slf4j
 class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
     private RescaleExecutor executor
+
+    private final Path exitFile
+
+    private final Path wrapperFile
+
+    private final Path outputFile
+
+    private final Path errorFile
+
+    private final Path logFile
+
+    private final Path scriptFile
+
+    private final Path inputFile
+
+    private final Path traceFile
 
     protected volatile String jobId
 
@@ -38,6 +56,14 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         super(task)
         this.executor = executor
         this.rescaleJobConfig = new RescaleJob(task, executor)
+        this.logFile = task.workDir.resolve(TaskRun.CMD_LOG)
+        this.scriptFile = task.workDir.resolve(TaskRun.CMD_SCRIPT)
+        this.inputFile =  task.workDir.resolve(TaskRun.CMD_INFILE)
+        this.outputFile = task.workDir.resolve(TaskRun.CMD_OUTFILE)
+        this.errorFile = task.workDir.resolve(TaskRun.CMD_ERRFILE)
+        this.exitFile = task.workDir.resolve(TaskRun.CMD_EXIT)
+        this.wrapperFile = task.workDir.resolve(TaskRun.CMD_RUN)
+        this.traceFile = task.workDir.resolve(TaskRun.CMD_TRACE)
     }
     // Initalization required after constractor
     protected RescaleTaskHandler initialize() {
@@ -83,7 +109,7 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         connection.doInput = true
 
         // Body
-        def bodyJson = rescaleJobConfig.jobConfigurationJson()
+        def bodyJson = rescaleJobConfig.jobConfigurationJson(wrapperFile)
 
         connection.outputStream.withWriter {
             writer -> writer.write(bodyJson)
@@ -184,7 +210,10 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
     @Override
     void submit() {
-        task.workDir = executor.getOutputDir().toAbsolutePath().normalize()
+
+        buildTaskWrapper()
+        correctWrapperPath()
+
         log.info "[Rescale Executor] WorkDir: ${task.workDir.toString()}"
 
         status = TaskStatus.SUBMITTED
@@ -198,9 +227,23 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         attachStorage(jobId)
 
         submitJob(jobId)
+    }
 
-        task.stdout = task.workDir.resolve(TaskRun.CMD_OUTFILE)
-        task.exitStatus = 0
+    protected correctWrapperPath() {
+        def file = new File(wrapperFile.toUri())
+        def content = file.text
+
+        content = content.replaceAll(executor.getBaseDir(), '\\$HOME')
+
+        file.text = content
+    }
+
+    protected BashWrapperBuilder createTaskWrapper() {
+        return new BashWrapperBuilder(task)
+    }
+
+    protected void buildTaskWrapper() {
+        createTaskWrapper().build()
     }
 
     private List<String> RUNNING_AND_COMPLETED = ["Completed", "Executing", "Validated", "Started", "Queued", "Pending", "Waiting for Queue", "Stopping"]
@@ -237,15 +280,31 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         def terminated = STOPPING in jobStatus
 
         if (terminated) {
+            task.stdout = outputFile
+            task.exitStatus = readExitFile()
             throw new AbortOperationException("Error: Job $jobId has stopped")
         }
 
         if (result) {
-            log.info "[Rescale Executor] Job $jobId is completed"
+            task.stdout = outputFile
             status = TaskStatus.COMPLETED
+            
+            log.info "[Rescale Executor] Job $jobId is completed"
+
+            task.exitStatus = 0
         }
 
         return result
+    }
+
+    private int readExitFile() {
+        try {
+            exitFile.text as Integer
+        }
+        catch( Exception e ) {
+            log.debug "[Rescale Executor] Cannot read exitstatus for task: `$task.name` | ${e.message}"
+            return Integer.MAX_VALUE
+        }
     }
 
     @Override
