@@ -2,9 +2,11 @@ package nextflow.hello
 
 import java.net.URL
 import java.net.HttpURLConnection
+import java.nio.file.Paths
 
 import nextflow.processor.TaskRun
 import nextflow.processor.TaskStatus
+import nextflow.executor.BashWrapperBuilder
 
 import spock.lang.Specification
 
@@ -14,6 +16,7 @@ class RescaleTaskHandlerTest extends Specification {
         given: 'a RescaleTaskHandler'
         def executor = Mock(RescaleExecutor)
         def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
@@ -39,12 +42,13 @@ class RescaleTaskHandlerTest extends Specification {
         }
 
         def jobConfig = Mock(RescaleJob) {
-            jobConfigurationJson() >> "{}"
+            jobConfigurationJson(_) >> "{}"
         }
 
         // Spy on class
         def executor = Mock(RescaleExecutor)
         def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
@@ -72,12 +76,13 @@ class RescaleTaskHandlerTest extends Specification {
         }
 
         def jobConfig = Mock(RescaleJob) {
-            jobConfigurationJson() >> "{}" 
+            jobConfigurationJson(_) >> "{}" 
         }
             
         // Spy on class
         def executor = Mock(RescaleExecutor)
         def task = Mock(TaskRun)  {
+            workDir >> Paths.get('/work/dir')
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
@@ -107,6 +112,7 @@ class RescaleTaskHandlerTest extends Specification {
         // Spy on class
         def executor = Mock(RescaleExecutor)
         def task = Mock(TaskRun)  {
+            workDir >> Paths.get('/work/dir')
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
@@ -132,6 +138,7 @@ class RescaleTaskHandlerTest extends Specification {
         // Spy on class
         def executor = Mock(RescaleExecutor)
         def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
@@ -159,6 +166,7 @@ class RescaleTaskHandlerTest extends Specification {
         // Spy on class
         def executor = Mock(RescaleExecutor)
         def task = Mock(TaskRun)  {
+            workDir >> Paths.get('/work/dir')
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
@@ -185,6 +193,7 @@ class RescaleTaskHandlerTest extends Specification {
             
         // Spy on class
         def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
@@ -205,6 +214,7 @@ class RescaleTaskHandlerTest extends Specification {
         // Spy on class
         def executor = Mock(RescaleExecutor)
         def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
@@ -228,6 +238,7 @@ class RescaleTaskHandlerTest extends Specification {
         // Spy on class
         def executor = Mock(RescaleExecutor)
         def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
@@ -251,6 +262,7 @@ class RescaleTaskHandlerTest extends Specification {
         def executor = Mock(RescaleExecutor)
         // Spy on class
         def task = Mock(TaskRun)  {
+            workDir >> Paths.get('/work/dir')
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
@@ -274,6 +286,7 @@ class RescaleTaskHandlerTest extends Specification {
         // Spy on class
         def executor = Mock(RescaleExecutor)
         def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
@@ -297,6 +310,7 @@ class RescaleTaskHandlerTest extends Specification {
         // Spy on class
         def executor = Mock(RescaleExecutor)
         def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
@@ -320,6 +334,7 @@ class RescaleTaskHandlerTest extends Specification {
         // Spy on class
         def executor = Mock(RescaleExecutor)
         def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
@@ -342,6 +357,7 @@ class RescaleTaskHandlerTest extends Specification {
         // Spy on class
         def executor = Mock(RescaleExecutor)
         def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
@@ -375,6 +391,7 @@ class RescaleTaskHandlerTest extends Specification {
 
         // Spy on class
         def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
@@ -407,6 +424,7 @@ class RescaleTaskHandlerTest extends Specification {
         // Spy on class
         def executor = Mock(RescaleExecutor)
         def task = Mock(TaskRun)  {
+            workDir >> Paths.get('/work/dir')
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
@@ -427,7 +445,9 @@ class RescaleTaskHandlerTest extends Specification {
     def 'should initialize RescaleTaskHandler' () {
         given: 'a RescaleTaskHandler'
         def executor = Mock(RescaleExecutor)
-        def task = Mock(TaskRun)
+        def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
+        }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             getConfigEnviromentVariable() >> null
         }
