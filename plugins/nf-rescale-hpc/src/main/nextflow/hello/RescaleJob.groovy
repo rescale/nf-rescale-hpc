@@ -48,15 +48,17 @@ class RescaleJob {
         return Paths.get(absolutePath)
     }
 
-    protected String commandString() {
-        def path = getCustomAbsolutePath(executor.getOutputDir()).toString()
-        def command = "cd $path\n" + task.script.trim().split('\n').collect { it.trim() }.join('\n')
+    protected String commandString(Path wrapperFile) {
+        def path = getCustomAbsolutePath(wrapperFile.getParent()).toString()
+        def wrapper = getCustomAbsolutePath(wrapperFile).toString()
+
+        def command = "cd $path\nchmod +x $wrapper\n$wrapper"
         def json = new JsonBuilder(command)
 
         return json.toString()
     }
 
-    protected String jobConfigurationJson() {
+    protected String jobConfigurationJson(Path wrapperFile) {
         List<String> errorMessages = []
         if (task.config.ext.analysisCode == null) {
             errorMessages << "Error: Job analysis software is not set in process. Set analysis software using ext.analysisCode in process directives."
@@ -89,7 +91,7 @@ class RescaleJob {
                     },
                     "useRescaleLicense": ${task.config.ext.rescaleLicense},
                     "envVars": ${envVarsJson()},
-                    "command": ${commandString()},
+                    "command": ${commandString(wrapperFile)},
                     "hardware": {
                         "coreType": "${task.config.machineType}",
                         "coresPerSlot": ${task.config.cpus}

@@ -67,12 +67,6 @@ class RescaleExecutor extends Executor implements ExtensionPoint {
 
     }
 
-    Path getOutputDir() {
-        def path = Paths.get(".")
-
-        return path
-    }
-
     @Override
     TaskHandler createTaskHandler(TaskRun task) {
         assert task
