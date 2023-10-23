@@ -32,13 +32,14 @@ class RescaleJobTest extends Specification {
             getOutputDir() >> Paths.get('/test/dir')
         }
         def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) {
-            commandString() >> '"test command"'
+            commandString(_) >> '"test command"'
             envVarsJson() >> "{'test':'var'}"
         }
         
 
         when: 'jobConfigurationJson is called'
-        def value = handlerSpy.jobConfigurationJson()
+        def wrapper = Paths.get('/test/file')
+        def value = handlerSpy.jobConfigurationJson(wrapper)
 
 
         then: 'return json with correct config'
@@ -111,26 +112,20 @@ class RescaleJobTest extends Specification {
     def 'should return a structured commandString of a task when commandString is called'() {
         given: "a RescaleJob"
 
-        def task = Mock(TaskRun) {
-            script >> """
-            export TEST=1
-            echo \$TEST 
-            """
-        }  
-        def executor = Mock(RescaleExecutor) {
-            getOutputDir() >> Paths.get('/test/dir')
-        }
+        def task = Mock(TaskRun)
+        def executor = Mock(RescaleExecutor)
         def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) {
-            getCustomAbsolutePath(_) >> Paths.get('$HOME/test/dir')
+            2 * getCustomAbsolutePath(_) >> Paths.get('$HOME/test') >> Paths.get('$HOME/test/file')
         }
         
 
         when: 'commandString is called'
-        def value = handlerSpy.commandString()
+        def wrapper = Paths.get('/test/file')
+        def value = handlerSpy.commandString(wrapper)
 
 
         then: 'return string with correct structure'
-        value == '"cd $HOME/test/dir\\nexport TEST=1\\necho \$TEST"'
+        value == '"cd $HOME/test\\nchmod +x $HOME/test/file\\n$HOME/test/file"'
     }
 
     def 'should return a environment variables in json format when envVarsJson is called'() {
