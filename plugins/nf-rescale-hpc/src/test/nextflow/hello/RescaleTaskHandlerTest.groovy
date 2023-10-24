@@ -316,6 +316,7 @@ class RescaleTaskHandlerTest extends Specification {
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             getStatuses(_) >> [["status":"Stopping"]]
             isRunning() >> true
+            readExitFile() >> 1
         }
         handlerSpy.setJobId("123")
         
@@ -324,9 +325,9 @@ class RescaleTaskHandlerTest extends Specification {
         def value = handlerSpy.checkIfCompleted()
 
 
-        then: 'throw an exception'
-        Exception e  = thrown()
-        e.message == "Error: Job 123 has stopped"
+        then: 'create exception and pass to task'
+        1 * task.setExitStatus(1)
+        1 * task.setError(_)
     }
 
     def 'should return false when a job is not running' () {
@@ -457,5 +458,59 @@ class RescaleTaskHandlerTest extends Specification {
 
         then: 'return RescaleTaskHandler and calls functions'
         value == handlerSpy
+    }
+
+    def 'should stop a rescale job' () {
+        given: 'a RescaleTaskHandler'
+        // Mock HttpURLConnection
+        def inputStream = new ByteArrayInputStream(''.getBytes())
+        def httpURLConnection = Mock(HttpURLConnection) {
+            getInputStream() >> inputStream
+            getResponseCode() >> 200
+        }
+            
+        // Spy on class
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun)  {
+            workDir >> Paths.get('/work/dir')
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+            createConnection(_) >> httpURLConnection
+        }
+
+
+        when: 'stopJob is called'
+        handlerSpy.stopJob("123")
+
+        then: 'no errors were thrown'
+        // If error is thrown the unit test will fail
+    }
+
+    def 'submitJob should throw an exception' () {
+        given: 'a RescaleTaskHandler'
+        // Mock HttpURLConnection
+        def httpURLConnection = Mock(HttpURLConnection) {
+            getResponseMessage() >> "Bad Request"
+            getResponseCode() >> 400
+        }
+            
+        // Spy on class
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+            createConnection(_) >> httpURLConnection
+        }
+
+
+        when: 'stopJob is called'
+        handlerSpy.stopJob()
+
+        then: 'throw an exception' 
+            Exception e  = thrown()
+            e.message == "Error: 400 - Bad Request"
     }
 }

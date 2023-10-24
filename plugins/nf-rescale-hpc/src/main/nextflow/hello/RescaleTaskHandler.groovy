@@ -132,7 +132,7 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         }
     }
 
-    private void submitJob(String jobId) {
+    protected void submitJob(String jobId) {
         def connection = this.createConnection("/api/v2/jobs/$jobId/submit/")
         connection.setRequestMethod('POST')
 
@@ -197,6 +197,25 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
             return content
 
+        } else {
+            def errorMessage = "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
+            
+            if (connection.errorStream != null) {
+                errorMessage += "\nError Message: $connection.errorStream.text"
+            }
+    
+            throw new AbortOperationException(errorMessage)
+        }
+    }
+
+    protected void stopJob(String jobId) {
+        HttpURLConnection connection = this.createConnection("/api/v2/jobs/$jobId/stop/")
+        connection.setRequestMethod('POST')
+
+        connection.doInput = true
+
+        if (connection.getResponseCode() >= 200 && connection.getResponseCode() < 400) {
+            log.trace "[Rescale Executor]: Job $jobId Stopped"
         } else {
             def errorMessage = "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
             
@@ -299,7 +318,7 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         return result
     }
 
-    private int readExitFile() {
+    protected int readExitFile() {
         try {
             exitFile.text as Integer
         }
@@ -311,7 +330,9 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
     @Override
     void kill() {
-
+        assert jobId
+        log.trace "[Rescale Executor] Killing Job $jobId"
+        stopJob(jobId)
     }
 
 }
