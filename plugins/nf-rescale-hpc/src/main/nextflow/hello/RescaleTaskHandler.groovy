@@ -282,13 +282,15 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         if (terminated) {
             task.stdout = outputFile
             task.exitStatus = readExitFile()
-            throw new AbortOperationException("Error: Job $jobId has stopped")
+
+            task.error = new AbortOperationException("Error: Job $jobId has stopped")
+            // task.stderr = errorFile // Might not exist
         }
 
         if (result) {
             task.stdout = outputFile
             status = TaskStatus.COMPLETED
-            
+
             log.info "[Rescale Executor] Job $jobId is completed"
 
             task.exitStatus = 0
