@@ -58,6 +58,10 @@ class RescaleJob {
         return json.toString()
     }
 
+    protected String onDemandLicenseSeller() {
+        return new JsonBuilder(task.config.ext.onDemandLicenseSeller).toString()
+    }
+
     protected String jobConfigurationJson(Path wrapperFile) {
         List<String> errorMessages = []
         if (task.config.ext.analysisCode == null) {
@@ -80,6 +84,8 @@ class RescaleJob {
             throw new AbortOperationException(errorMessages.join("\n"))
         }
 
+        log.info onDemandLicenseSeller()
+
         return """
         {
             "name": "${task.name}",
@@ -95,7 +101,8 @@ class RescaleJob {
                     "hardware": {
                         "coreType": "${task.config.machineType}",
                         "coresPerSlot": ${task.config.cpus}
-                    }
+                    },
+                    "onDemandLicenseSeller": ${onDemandLicenseSeller()}
                 }
             ]
         }
