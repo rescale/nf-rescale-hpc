@@ -4,11 +4,13 @@ This project contains Rescale's custom Nextflow executor called `nf-rescale-hpc`
 ## How to Launch a Rescale Job
 To launch a Rescale Job, the Nextflow file (.nf) should included mandatory configurations:
 
-0. To launch a Rescale Job using Nextflow ```<personal-access-token>``` and ```<API_KEY>``` are required. 
+0. To launch a Rescale Job using Nextflow ```<personal-access-token>``` and ```<API_KEY>``` are required. `Custom User Space` is also required to utilize Nextflow caching system `-resume`
 
     Personal Access Token can be requested from a Github account and will need the approval of IT. 
     
     The API_KEY can be created from a Rescale Platform
+
+    Request Custom User Space from official channels
 
 1. Set the plugin to `nf-rescale-hpc` and executor to `rescale-executor` in `nextflow.config` file
 
@@ -23,6 +25,8 @@ process {
 }
 ```
 2. Set RESCALE_PLATFORM_URL and RESCALE_CLUSTER_TOKEN (API Token) in `nextflow.config` file
+
+**NOTE**: Any environmental variable that is required to be shared among jobs need to be provided using env
 ```
 env {
   RESCALE_PLATFORM_URL = "https://platform.rescale.com"
@@ -42,6 +46,7 @@ process <processName> {
   ...
 }
 ```
+**NOTE:** process configuration can be specified in `nextflow.config` using [`withName`](https://www.nextflow.io/docs/latest/config.html#process-selectors) or [`withLabel`](https://www.nextflow.io/docs/latest/config.html#process-selectors) tags.
 
 ### Available Parameters Supported (First Pass)
 ---
@@ -85,7 +90,7 @@ sdk use java 17.0.6-amzn
 wget -qO- https://get.nextflow.io | bash
 chmod +x nextflow
 nf_home=$(pwd)
-git clone https:/<personal-access-token>.com/rescale/nf-rescale-hpc.git
+git clone https:/<personal-access-token>@github.com/rescale/nf-rescale-hpc.git
 cd nf-rescale-hpc
 make buildPlugins
 mkdir -p ~/.nextflow/plugins
