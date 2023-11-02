@@ -1,13 +1,6 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2 
 process phase1 {
-    ext.analysisCode="user_included"
-    ext.analysisVersion="0"
-    machineType "emerald"
-    cpus 1
-
-    executor="rescale-executor"
-  
   publishDir "twoprocout", mode: 'copy'
   input: 
     path x
@@ -21,13 +14,6 @@ process phase1 {
     """
 }
 process phase2 {
-    ext.analysisCode="user_included"
-    ext.analysisVersion="0"
-    machineType "emerald"
-    cpus 1
-
-    executor="rescale-executor"
-
     publishDir "twoprocout", mode: 'copy'
     input:
        path 'phase1out.txt'
