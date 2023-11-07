@@ -34,6 +34,7 @@ class RescaleJobTest extends Specification {
         def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) {
             commandString(_) >> '"test command"'
             envVarsJson() >> "{'test':'var'}"
+            onDemandLicenseSeller() >> "{code:'onDemand'}"
         }
         
 
@@ -58,7 +59,8 @@ class RescaleJobTest extends Specification {
                     "hardware": {
                         "coreType": "testMachine",
                         "coresPerSlot": 123
-                    }
+                    },
+                    "onDemandLicenseSeller": {code:'onDemand'}
                 }
             ]
         }

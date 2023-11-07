@@ -268,6 +268,7 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
     private List<String> RUNNING_AND_COMPLETED = ["Completed", "Executing", "Validated", "Started", "Queued", "Pending", "Waiting for Queue", "Stopping"]
     private final String COMPLETED = "Completed"
     private final String STOPPING = "Stopping"
+    private final String RUN_FAILED = "A run failed"
 
     @Override
     boolean checkIfRunning() {
@@ -293,17 +294,21 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
             return false
         }
 
+        def jobStatus = getStatuses(jobId)
+        def statusList = jobStatus.collect { it["status"] }
 
-        def jobStatus = getStatuses(jobId).collect { it["status"] }
-        def result = COMPLETED in jobStatus
-        def terminated = STOPPING in jobStatus
+        def result = COMPLETED in statusList
+        def terminated = STOPPING in statusList
 
         if (terminated) {
             task.stdout = outputFile
             task.exitStatus = readExitFile()
+            def statusReason = jobStatus.find { it.status == this.@STOPPING }.statusReason
 
-            task.error = new AbortOperationException("Error: Job $jobId has stopped")
-            // task.stderr = errorFile // Might not exist
+            task.error = new AbortOperationException("Error: Job $jobId has stopped. Reason: $statusReason")
+            if (statusReason == RUN_FAILED) {
+                task.stderr = errorFile
+            }
         }
 
         if (result) {

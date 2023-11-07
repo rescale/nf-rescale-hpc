@@ -314,7 +314,7 @@ class RescaleTaskHandlerTest extends Specification {
             getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
-            getStatuses(_) >> [["status":"Stopping"]]
+            getStatuses(_) >> [["status":"Stopping", "statusReason": "User Terminated"]]
             isRunning() >> true
             readExitFile() >> 1
         }
@@ -328,6 +328,32 @@ class RescaleTaskHandlerTest extends Specification {
         then: 'create exception and pass to task'
         1 * task.setExitStatus(1)
         1 * task.setError(_)
+    }
+
+    def 'should throw an error when job fails' () {
+        given: 'a RescaleTaskHandler'
+        // Spy on class
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+            getStatuses(_) >> [["status":"Stopping", "statusReason": "A run failed"]]
+            isRunning() >> true
+            readExitFile() >> 1
+        }
+        handlerSpy.setJobId("123")
+        
+
+        when: 'checkIfCompleted is called with a status Stopping'
+        def value = handlerSpy.checkIfCompleted()
+
+
+        then: 'create exception and pass to task and set std err'
+        1 * task.setExitStatus(1)
+        1 * task.setError(_)
+        1 * task.setStderr(_)
     }
 
     def 'should return false when a job is not running' () {

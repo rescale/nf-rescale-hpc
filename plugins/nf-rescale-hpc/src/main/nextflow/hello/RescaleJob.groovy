@@ -84,8 +84,6 @@ class RescaleJob {
             throw new AbortOperationException(errorMessages.join("\n"))
         }
 
-        log.info onDemandLicenseSeller()
-
         return """
         {
             "name": "${task.name}",
