@@ -4,13 +4,22 @@ This project contains Rescale's custom Nextflow executor called `nf-rescale-hpc`
 ## How to Launch a Rescale Job
 To launch a Rescale Job, the Nextflow file (.nf) should included mandatory configurations:
 
-0. To launch a Rescale Job using Nextflow ```<personal-access-token>``` and ```<API_KEY>``` are required. `Custom User Space` is also required to utilize Nextflow caching system `-resume`
+### Pre-requisites
+To launch a Rescale Job using Nextflow
+1. ```<personal-access-token>``` and ```<API_KEY>``` are required. 
 
     Personal Access Token can be requested from a Github account and will need the approval of IT. 
     
     The API_KEY can be created from a Rescale Platform
 
-    Request Custom User Space from official channels
+2. `Custom naming policy` is also required to utilize Nextflow caching system `-resume`.
+
+    Request custom naming policy from site/organization admin to set in Django.
+
+3. `HPS` (Storage Device) is required to attach to Nextflow Job/Tile (HPS Specific)
+
+
+### Step by Step
 
 1. Set the plugin to `nf-rescale-hpc` and executor to `rescale-executor` in `nextflow.config` file
 
@@ -62,6 +71,9 @@ The following parameters are currently supported and functional. The parameters 
 **cpus** (Defaults to 1): The number of cores of the hardware
 
 **ext.rescaleLicense** (Defaults to false): Whether or not to use Rescale License when running a software (Custom License can be passed using Nextflow environmental values)
+
+**ext.onDemandLicenseSeller** (Optional): A dictionary with the schema of `["code":"codeValue", "name":"nameValue"]` where code and name are the license provider’s code and name, respectively.
+
 
 ### Future Parameters to be supported (Second Pass)
 ---
