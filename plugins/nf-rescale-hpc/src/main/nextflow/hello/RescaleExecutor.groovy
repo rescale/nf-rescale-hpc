@@ -28,7 +28,7 @@ class RescaleExecutor extends Executor implements ExtensionPoint {
     protected String storageId
     protected String baseDir = System.getProperty("user.home")
 
-    protected String getStorageId() { return storageId }
+    protected String getStorageId() { return 'PRgNk' }
     protected String getBaseDir() { return baseDir }
 
 

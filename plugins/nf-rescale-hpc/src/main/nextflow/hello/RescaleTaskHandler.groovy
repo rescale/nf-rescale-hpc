@@ -280,6 +280,8 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
         def jobStatus = getStatuses(jobId)[0]["status"]
         def result = jobStatus in RUNNING_AND_COMPLETED
+            
+        log.info "[Rescale Executor] Job $jobId is $jobStatus"
 
 
         if (currentStatus != jobStatus) {
