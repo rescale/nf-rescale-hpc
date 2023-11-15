@@ -57,7 +57,7 @@ class RescaleExecutor extends Executor implements ExtensionPoint {
 
         if (storageDir) {
             String[] parts = storageDir.name.split("_")
-            log.info "Directory Found: ${parts}"
+            log.info "[Rescale Executor] Directory Found: ${parts}"
             
             setStorageId(parts[1])
 
