@@ -62,6 +62,30 @@ class RescaleJob {
         return new JsonBuilder(task.config.ext.onDemandLicenseSeller).toString()
     }
 
+    protected String hardwareConfig() {
+        List<String> errorMessages = []
+
+        if (task.config.machineType == null) {
+            errorMessages << "Error: Hardware type is not set in process. Set hardware type using machineType in process directives."
+        }
+
+        if (!errorMessages.isEmpty()) {
+            throw new AbortOperationException(errorMessages.join("\n"))
+        }
+
+        def config = ["coreType": task.config.machineType,
+                      "coresPerSlot": task.config.cpus]
+
+        def wallTime = task.config.ext.wallTime
+        
+        // task.config.ext implementation either returns an empty list or the value
+        if (wallTime != null & !(wallTime instanceof List && wallTime.isEmpty())) { 
+            config["walltime"] = task.config.ext.wallTime
+        }
+
+        return new JsonBuilder(config).toString()
+    }
+
     protected String jobConfigurationJson(Path wrapperFile) {
         List<String> errorMessages = []
         if (task.config.ext.analysisCode == null) {
@@ -72,9 +96,6 @@ class RescaleJob {
             errorMessages << "Error: Job analysis version is not set in process. Set analysis version using ext.analysisVersion in process directives."
         }
 
-        if (task.config.machineType == null) {
-            errorMessages << "Error: Hardware type is not set in process. Set hardware type using machineType in process directives."
-        }
         // Rescale License defaults to false
         if (task.config.ext.rescaleLicense == null) {
             task.config.ext.rescaleLicense = false
@@ -96,10 +117,7 @@ class RescaleJob {
                     "useRescaleLicense": ${task.config.ext.rescaleLicense},
                     "envVars": ${envVarsJson()},
                     "command": ${commandString(wrapperFile)},
-                    "hardware": {
-                        "coreType": "${task.config.machineType}",
-                        "coresPerSlot": ${task.config.cpus}
-                    },
+                    "hardware": ${hardwareConfig()},
                     "onDemandLicenseSeller": ${onDemandLicenseSeller()}
                 }
             ]

@@ -35,6 +35,7 @@ class RescaleJobTest extends Specification {
             commandString(_) >> '"test command"'
             envVarsJson() >> "{'test':'var'}"
             onDemandLicenseSeller() >> "{code:'onDemand'}"
+            hardwareConfig() >> """{"core Type":"testMachine","coresPerSlot":123}"""
         }
         
 
@@ -56,10 +57,7 @@ class RescaleJobTest extends Specification {
                     "useRescaleLicense": true,
                     "envVars": {'test':'var'},
                     "command": "test command",
-                    "hardware": {
-                        "coreType": "testMachine",
-                        "coresPerSlot": 123
-                    },
+                    "hardware": {"core Type":"testMachine","coresPerSlot":123},
                     "onDemandLicenseSeller": {code:'onDemand'}
                 }
             ]
@@ -198,5 +196,81 @@ class RescaleJobTest extends Specification {
 
         then: 'return the normal absolute path'
         value == Paths.get('/notHome/dir/test')
-    }   
+    }
+
+    def 'should return a hardware configuraiton json with walltime'() {
+        given: "a RescaleJob"
+
+        // Spy on class
+        def taskConfig = new TaskConfig()
+        taskConfig.ext = []
+        taskConfig.cpus = 123
+        taskConfig.machineType = "testMachine"
+
+        def task = Mock(TaskRun) {
+            config >> taskConfig
+        }
+        def executor = Mock(RescaleExecutor) {
+            getOutputDir() >> Paths.get('/test/dir')
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor])
+        
+
+        when: 'hardwareConfig is called without specified walltime'
+        def value = handlerSpy.hardwareConfig()
+
+
+        then: 'return json with correct config'
+        value == '''{"coreType":"testMachine","coresPerSlot":123}'''
+    }
+
+    def 'should return a hardware configuraiton json with walltime'() {
+        given: "a RescaleJob"
+
+        // Spy on class
+        def taskConfig = new TaskConfig()
+        taskConfig.ext = ["wallTime":5]
+        taskConfig.cpus = 123
+        taskConfig.machineType = "testMachine"
+
+        def task = Mock(TaskRun) {
+            config >> taskConfig
+        }
+        def executor = Mock(RescaleExecutor) {
+            getOutputDir() >> Paths.get('/test/dir')
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor])
+        
+
+        when: 'hardwareConfig is called without specified walltime'
+        def value = handlerSpy.hardwareConfig()
+
+
+        then: 'return json with correct config'
+        value == '''{"coreType":"testMachine","coresPerSlot":123,"walltime":5}'''
+    }
+
+    def 'should throw error if machineType is not specified'() {
+        given: "a RescaleJob"
+
+        // Spy on class
+        def taskConfig = new TaskConfig()
+        taskConfig.cpus = 123
+
+        def task = Mock(TaskRun) {
+            config >> taskConfig
+        }
+        def executor = Mock(RescaleExecutor) {
+            getOutputDir() >> Paths.get('/test/dir')
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor])
+        
+
+        when: 'hardwareConfig is called'
+        def value = handlerSpy.hardwareConfig()
+
+
+        then: 'return json with correct config'
+        thrown(AbortOperationException)
+    }
 }
