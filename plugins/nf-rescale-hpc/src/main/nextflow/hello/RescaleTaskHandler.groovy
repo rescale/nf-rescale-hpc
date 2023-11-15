@@ -37,6 +37,8 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
     protected volatile String jobId
 
+    protected String currentStatus
+
     protected RescaleJob rescaleJobConfig
 
     protected String RESCALE_CLUSTER_TOKEN
@@ -279,8 +281,13 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         def jobStatus = getStatuses(jobId)[0]["status"]
         def result = jobStatus in RUNNING_AND_COMPLETED
 
+
+        if (currentStatus != jobStatus) {
+            currentStatus = jobStatus
+            log.info "[Rescale Executor] Job $jobId is $currentStatus"
+        }    
+
         if (result) {
-            log.info "[Rescale Executor] Job $jobId is running"
             status = TaskStatus.RUNNING
         }
         
@@ -296,6 +303,11 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
         def jobStatus = getStatuses(jobId)
         def statusList = jobStatus.collect { it["status"] }
+
+        if (currentStatus != statusList[0]) {
+            currentStatus = statusList[0]
+            log.info "[Rescale Executor] Job $jobId is ${currentStatus}"
+        }
 
         def result = COMPLETED in statusList
         def terminated = STOPPING in statusList
@@ -315,7 +327,7 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
             task.stdout = outputFile
             status = TaskStatus.COMPLETED
 
-            log.info "[Rescale Executor] Job $jobId is completed"
+            log.info "[Rescale Executor] Job $jobId is Completed"
 
             task.exitStatus = 0
         }
