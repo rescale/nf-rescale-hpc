@@ -27,14 +27,12 @@ class RescaleJob {
         this.storageId = executor.getStorageId()
     }
 
-    protected String envVarsJson() {
+    protected Map envVarsJson() {
         if (task.getEnvironment() == null) {
-            return "{}"
+            return [:]
         }
 
-        def json = new JsonBuilder(task.getEnvironment())
-
-        return json.toString()
+        return task.getEnvironment()
     }
 
     protected Path getCustomAbsolutePath(Path path) {
@@ -52,17 +50,14 @@ class RescaleJob {
         def path = getCustomAbsolutePath(wrapperFile.getParent()).toString()
         def wrapper = getCustomAbsolutePath(wrapperFile).toString()
 
-        def command = "cd $path\nchmod +x $wrapper\n$wrapper"
-        def json = new JsonBuilder(command)
-
-        return json.toString()
+        return "cd $path\nchmod +x $wrapper\n$wrapper"
     }
 
-    protected String onDemandLicenseSeller() {
-        return new JsonBuilder(task.config.ext.onDemandLicenseSeller).toString()
+    protected Map onDemandLicenseSeller() {
+        return task.config.ext.onDemandLicenseSeller
     }
 
-    protected String hardwareConfig() {
+    protected Map hardwareConfig() {
         List<String> errorMessages = []
 
         if (task.config.machineType == null) {
@@ -79,11 +74,11 @@ class RescaleJob {
         def wallTime = task.config.ext.wallTime
         
         // task.config.ext implementation either returns an empty list or the value
-        if (wallTime != null & !(wallTime instanceof List && wallTime.isEmpty())) { 
+        if (wallTime != null) { 
             config["walltime"] = task.config.ext.wallTime
         }
 
-        return new JsonBuilder(config).toString()
+        return config
     }
 
     protected String jobConfigurationJson(Path wrapperFile) {
@@ -105,24 +100,24 @@ class RescaleJob {
             throw new AbortOperationException(errorMessages.join("\n"))
         }
 
-        return """
-        {
-            "name": "${task.name}",
+        def config = [
+            "name": task.name,
             "jobanalyses": [
-                {
-                    "analysis": {
-                        "code": "${task.config.ext.analysisCode}",
-                        "version": "${task.config.ext.analysisVersion}"
-                    },
-                    "useRescaleLicense": ${task.config.ext.rescaleLicense},
-                    "envVars": ${envVarsJson()},
-                    "command": ${commandString(wrapperFile)},
-                    "hardware": ${hardwareConfig()},
-                    "onDemandLicenseSeller": ${onDemandLicenseSeller()}
-                }
+                [
+                    "analysis": [
+                        "code": task.config.ext.analysisCode,
+                        "version": task.config.ext.analysisVersion
+                    ],
+                    "useRescaleLicense": task.config.ext.rescaleLicense,
+                    "envVars": envVarsJson(),
+                    "command": commandString(wrapperFile),
+                    "hardware": hardwareConfig(),
+                    "onDemandLicenseSeller": onDemandLicenseSeller()
+                ]
             ]
-        }
-        """
+        ]
+
+        return new JsonBuilder(config).toString() 
     }
 
     protected String storageConfigurationJson() {

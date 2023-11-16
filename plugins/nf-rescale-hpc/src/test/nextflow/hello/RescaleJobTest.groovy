@@ -32,10 +32,10 @@ class RescaleJobTest extends Specification {
             getOutputDir() >> Paths.get('/test/dir')
         }
         def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) {
-            commandString(_) >> '"test command"'
-            envVarsJson() >> "{'test':'var'}"
-            onDemandLicenseSeller() >> "{code:'onDemand'}"
-            hardwareConfig() >> """{"core Type":"testMachine","coresPerSlot":123}"""
+            commandString(_) >> 'test command'
+            envVarsJson() >> ['test':'var']
+            onDemandLicenseSeller() >> [code:'onDemand']
+            hardwareConfig() >> ["coreType":"testMachine","coresPerSlot":123]
         }
         
 
@@ -45,24 +45,7 @@ class RescaleJobTest extends Specification {
 
 
         then: 'return json with correct config'
-        value == '''
-        {
-            "name": "test123",
-            "jobanalyses": [
-                {
-                    "analysis": {
-                        "code": "testCode",
-                        "version": "testVersion"
-                    },
-                    "useRescaleLicense": true,
-                    "envVars": {'test':'var'},
-                    "command": "test command",
-                    "hardware": {"core Type":"testMachine","coresPerSlot":123},
-                    "onDemandLicenseSeller": {code:'onDemand'}
-                }
-            ]
-        }
-        '''
+        value == '''{"name":"test123","jobanalyses":[{"analysis":{"code":"testCode","version":"testVersion"},"useRescaleLicense":"true","envVars":{"test":"var"},"command":"test command","hardware":{"coreType":"testMachine","coresPerSlot":123},"onDemandLicenseSeller":{"code":"onDemand"}}]}'''
     }
 
     def 'should throw an error if improper rescale job json when jobConfigurationJson called'() {
@@ -125,7 +108,7 @@ class RescaleJobTest extends Specification {
 
 
         then: 'return string with correct structure'
-        value == '"cd $HOME/test\\nchmod +x $HOME/test/file\\n$HOME/test/file"'
+        value == 'cd $HOME/test\nchmod +x $HOME/test/file\n$HOME/test/file'
     }
 
     def 'should return a environment variables in json format when envVarsJson is called'() {
@@ -143,7 +126,7 @@ class RescaleJobTest extends Specification {
 
 
         then: 'return json with correct environment'
-        value == '{"TEST_ENV":"123","TEST_ENV_1":"456"}'
+        value == ["TEST_ENV":"123","TEST_ENV_1":"456"]
     }
 
     def 'should return a empty environment variables in json format if nextflow env is empty'() {
@@ -159,7 +142,7 @@ class RescaleJobTest extends Specification {
 
 
         then: 'return json with correct environment'
-        value == '{}'
+        value == [:]
     }
 
     def 'should get a custom absolute path path if customAbsolutePath is called' () {
@@ -203,7 +186,7 @@ class RescaleJobTest extends Specification {
 
         // Spy on class
         def taskConfig = new TaskConfig()
-        taskConfig.ext = []
+        taskConfig.ext = [:]
         taskConfig.cpus = 123
         taskConfig.machineType = "testMachine"
 
@@ -221,7 +204,7 @@ class RescaleJobTest extends Specification {
 
 
         then: 'return json with correct config'
-        value == '''{"coreType":"testMachine","coresPerSlot":123}'''
+        value == ["coreType":"testMachine","coresPerSlot":123]
     }
 
     def 'should return a hardware configuraiton json with walltime'() {
@@ -247,7 +230,7 @@ class RescaleJobTest extends Specification {
 
 
         then: 'return json with correct config'
-        value == '''{"coreType":"testMachine","coresPerSlot":123,"walltime":5}'''
+        value == ["coreType":"testMachine","coresPerSlot":123,"walltime":5]
     }
 
     def 'should throw error if machineType is not specified'() {
