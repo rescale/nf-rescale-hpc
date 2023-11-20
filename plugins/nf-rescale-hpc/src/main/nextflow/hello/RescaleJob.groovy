@@ -57,6 +57,10 @@ class RescaleJob {
         return task.config.ext.onDemandLicenseSeller
     }
 
+    protected Map userDefinedLicenseSettings() {
+        return task.config.ext.userDefinedLicenseSettings
+    }
+
     protected Map hardwareConfig() {
         List<String> errorMessages = []
 
@@ -75,25 +79,36 @@ class RescaleJob {
         
         // task.config.ext implementation either returns an empty list or the value
         if (wallTime != null) { 
-            config["walltime"] = task.config.ext.wallTime
+            if (wallTime < 1 || wallTime > 2147483647) {
+                config["walltime"] = 8
+                log.warn "[Rescale Executor] Invalid wallTime of $wallTime set. Default set to 8."
+            }
+            config["walltime"] = wallTime
         }
 
         return config
     }
 
-    protected String jobConfigurationJson(Path wrapperFile) {
+    protected Map jobAnalyseConfig(
+        analysisCode,
+        analysisVersion,
+        command,
+        rescaleLicense,
+        onDemandLicenseSeller,
+        userDefinedLicenseSettings
+    ) {
         List<String> errorMessages = []
-        if (task.config.ext.analysisCode == null) {
+        if (analysisCode == null) {
             errorMessages << "Error: Job analysis software is not set in process. Set analysis software using ext.analysisCode in process directives."
         }
 
-        if (task.config.ext.analysisVersion == null) {
+        if (analysisVersion == null) {
             errorMessages << "Error: Job analysis version is not set in process. Set analysis version using ext.analysisVersion in process directives."
         }
 
         // Rescale License defaults to false
-        if (task.config.ext.rescaleLicense == null) {
-            task.config.ext.rescaleLicense = false
+        if (rescaleLicense == null) {
+            rescaleLicense = false
         }
 
         if (!errorMessages.isEmpty()) {
@@ -101,21 +116,63 @@ class RescaleJob {
         }
 
         def config = [
-            "name": task.name,
-            "jobanalyses": [
-                [
-                    "analysis": [
-                        "code": task.config.ext.analysisCode,
-                        "version": task.config.ext.analysisVersion
-                    ],
-                    "useRescaleLicense": task.config.ext.rescaleLicense,
-                    "envVars": envVarsJson(),
-                    "command": commandString(wrapperFile),
-                    "hardware": hardwareConfig(),
-                    "onDemandLicenseSeller": onDemandLicenseSeller()
-                ]
-            ]
+            "analysis": [
+                "code": analysisCode,
+                "version": analysisVersion
+            ],
+            "useRescaleLicense": rescaleLicense,
+            "envVars": envVarsJson(),
+            "command": command,
+            "hardware": hardwareConfig(),
+            "onDemandLicenseSeller": onDemandLicenseSeller,
+            "userDefinedLicenseSettings": userDefinedLicenseSettings
         ]
+
+        return config
+    }
+
+    protected String jobConfigurationJson(Path wrapperFile) {
+        List<String> errorMessages = []
+        if (task.config.ext.jobAnalyses == null) {
+            errorMessages << "Error: Job analysis software is not set in process. Set analysis software using ext.jobAnalyses in process directives."
+        }
+
+        if (!errorMessages.isEmpty()) {
+            throw new AbortOperationException(errorMessages.join("\n"))
+        }
+
+        def jobAnalyses = task.config.ext.jobAnalyses
+
+
+        for (int i = 0; i < jobAnalyses.size(); i++) {
+            def command = ":"
+            if (i == jobAnalyses.size() - 1) {
+                command = commandString(wrapperFile)   
+            }
+
+            jobAnalyses[i] = jobAnalyseConfig(
+                    jobAnalyses[i].analysisCode,
+                    jobAnalyses[i].analysisVersion,
+                    command,
+                    jobAnalyses[i].rescaleLicense,
+                    jobAnalyses[i].onDemandLicenseSeller,
+                    jobAnalyses[i].userDefinedLicenseSettings
+                )
+        }
+        
+
+        def config = [
+            "name": task.name,
+            "jobanalyses": jobAnalyses
+        ]
+
+        if (task.config.ext.billingPriorityValue != null) {
+            config["billingPriorityValue"] = task.config.ext.billingPriorityValue
+        }
+
+        if (task.config.ext.projectId != null) {
+            config["project_id"] = task.config.ext.projectId
+        }
 
         return new JsonBuilder(config).toString() 
     }

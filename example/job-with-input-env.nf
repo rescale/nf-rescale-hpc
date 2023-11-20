@@ -1,6 +1,8 @@
 process echoEnv {
-    ext.analysisCode="user_included"
-    ext.analysisVersion="0"
+    ext.jobAnalyses=[[
+    analysisCode: "user_included",
+    analysisVersion: "0", 
+    ]]
     machineType "emerald"
     cpus 1
 

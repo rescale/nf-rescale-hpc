@@ -1,8 +1,10 @@
 
 process nastran {
-  ext.analysisCode="msc_nastran"
-  ext.analysisVersion="2023.2"
-  ext.rescaleLicense=true
+  ext.jobAnalyses=[[
+    analysisCode: "msc_nastran",
+    analysisVersion: "2023.2", 
+    useRescaleLicense: true
+    ]]
   machineType "emerald"
   cpus 1
 

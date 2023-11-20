@@ -19,7 +19,15 @@ class RescaleJobTest extends Specification {
 
         // Spy on class
         def taskConfig = new TaskConfig()
-        taskConfig.ext = ["analysisCode":"testCode", "analysisVersion":"testVersion", "rescaleLicense":"true"]
+        taskConfig.ext = [
+            "jobAnalyses":[[
+                "analysisCode": "test",
+                "analysisVersion": "v1",
+                "rescaleLicense":"true",
+            ]],
+            "billingPriorityValue": "test",
+            "projectId": "testProject"
+        ]
         taskConfig.cpus = 123
         taskConfig.machineType = "testMachine"
 
@@ -32,10 +40,8 @@ class RescaleJobTest extends Specification {
             getOutputDir() >> Paths.get('/test/dir')
         }
         def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) {
-            commandString(_) >> 'test command'
-            envVarsJson() >> ['test':'var']
-            onDemandLicenseSeller() >> [code:'onDemand']
-            hardwareConfig() >> ["coreType":"testMachine","coresPerSlot":123]
+            jobAnalyseConfig(_,_,_,_,_,_) >> ["jobAnalyses": "testAnalyses"]
+            commandString(_) >> "test command"
         }
         
 
@@ -45,7 +51,7 @@ class RescaleJobTest extends Specification {
 
 
         then: 'return json with correct config'
-        value == '''{"name":"test123","jobanalyses":[{"analysis":{"code":"testCode","version":"testVersion"},"useRescaleLicense":"true","envVars":{"test":"var"},"command":"test command","hardware":{"coreType":"testMachine","coresPerSlot":123},"onDemandLicenseSeller":{"code":"onDemand"}}]}'''
+        value == '''{"name":"test123","jobanalyses":[{"jobAnalyses":"testAnalyses"}],"billingPriorityValue":"test","project_id":"testProject"}'''
     }
 
     def 'should throw an error if improper rescale job json when jobConfigurationJson called'() {
@@ -67,7 +73,71 @@ class RescaleJobTest extends Specification {
         def value = handlerSpy.jobConfigurationJson()
 
 
-        then: 'return json with correct config'
+        then: 'throw an error'
+        thrown(AbortOperationException)
+    }
+
+    def 'should return proper job Analyse config when jobAnalyseConfig called'() {
+        given: "a RescaleJob"
+
+        // Spy on class
+        def taskConfig = new TaskConfig()
+
+        def task = Mock(TaskRun) {
+            name >> "test123"
+            script >> "echo Hello World"
+            config >> taskConfig
+        }
+        def executor = Mock(RescaleExecutor) {
+            getOutputDir() >> Paths.get('/test/dir')
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) {
+            envVarsJson() >> ['test':'var']
+            hardwareConfig() >> ["coreType":"testMachine","coresPerSlot":123]
+        }
+        
+
+        when: 'jobAnalyseConfig is called'
+        def value = handlerSpy.jobAnalyseConfig("test", "testVersion", "test command", "true", [code:'onDemand'], [code:'userDefined'])
+
+
+        then: 'return map with correct config'
+        value == [
+            "analysis":["code":"test", "version":"testVersion"],
+            "useRescaleLicense":"true",
+            "envVars":["test":'var'],
+            "command":"test command",
+            "hardware":["coreType":'testMachine', "coresPerSlot":123],
+            "onDemandLicenseSeller":["code":'onDemand'],
+            "userDefinedLicenseSettings":['code':'userDefined']
+            ]
+    }
+
+    def 'should throw an error if analysisCode and analysisVersion not supplied'() {
+        given: "a RescaleJob"
+
+        // Spy on class
+        def taskConfig = new TaskConfig()
+
+        def task = Mock(TaskRun) {
+            name >> "test123"
+            script >> "echo Hello World"
+            config >> taskConfig
+        }
+        def executor = Mock(RescaleExecutor) {
+            getOutputDir() >> Paths.get('/test/dir')
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) {
+            envVarsJson() >> ['test':'var']
+            hardwareConfig() >> ["coreType":"testMachine","coresPerSlot":123]
+        }
+        
+
+        when: 'jobAnalyseConfig is called'
+        def value = handlerSpy.jobAnalyseConfig(null,  null, "test command", "true", [code:'onDemand'], [code:'userDefined'])
+
+
+        then: 'throw an error'
         thrown(AbortOperationException)
     }
 
