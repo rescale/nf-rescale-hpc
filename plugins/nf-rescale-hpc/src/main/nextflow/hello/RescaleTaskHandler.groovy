@@ -311,28 +311,49 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
         def result = COMPLETED in statusList
         def terminated = STOPPING in statusList
+        def statusReason = ""
+
+        // Check before terminated logic for cases when COMPLETE
+        // triggered without a STOPPING status
+        if (result) {
+            statusReason = jobStatus.find { it.status == this.@COMPLETED }.statusReason
+            if (statusReason == "Exceeded max number of restarts" || 
+                statusReason == "Could not allocate compute resources from the compute provider") {
+            // Job stopped with status complete however, not properly executed
+                terminated = true;
+            }
+        }
 
         if (terminated) {
             task.stdout = outputFile
             task.exitStatus = readExitFile()
-            def statusReason = jobStatus.find { it.status == this.@STOPPING }.statusReason
+            
+            def stoppingStatus = jobStatus.find { it.status == this.@STOPPING }
+            if (stoppingStatus) {
+                statusReason = stoppingStatus.statusReason
+            }
 
             task.error = new AbortOperationException("Error: Job $jobId has stopped. Reason: $statusReason")
             if (statusReason == RUN_FAILED) {
                 task.stderr = errorFile
             }
-        }
+            
+            log.info "Job $jobId is terminated. Reason: $statusReason"
 
-        if (result) {
-            task.stdout = outputFile
             status = TaskStatus.COMPLETED
+            return true
+        }
+        else if (result) {
+            task.stdout = outputFile
+            task.exitStatus = 0
 
             log.info "[Rescale Executor] Job $jobId is Completed"
 
-            task.exitStatus = 0
+            status = TaskStatus.COMPLETED
+            return true
         }
 
-        return result
+        return false
     }
 
     protected int readExitFile() {
