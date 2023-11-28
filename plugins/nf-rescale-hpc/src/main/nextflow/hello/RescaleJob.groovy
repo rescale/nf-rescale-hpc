@@ -53,14 +53,6 @@ class RescaleJob {
         return "cd $path\nchmod +x $wrapper\n$wrapper"
     }
 
-    protected Map onDemandLicenseSeller() {
-        return task.config.ext.onDemandLicenseSeller
-    }
-
-    protected Map userDefinedLicenseSettings() {
-        return task.config.ext.userDefinedLicenseSettings
-    }
-
     protected Map hardwareConfig() {
         List<String> errorMessages = []
 
@@ -79,10 +71,6 @@ class RescaleJob {
         
         // task.config.ext implementation either returns an empty list or the value
         if (wallTime != null) { 
-            if (wallTime < 1 || wallTime > 2147483647) {
-                config["walltime"] = 8
-                log.warn "[Rescale Executor] Invalid wallTime of $wallTime set. Default set to 8."
-            }
             config["walltime"] = wallTime
         }
 
@@ -129,6 +117,7 @@ class RescaleJob {
         ]
 
         return config
+
     }
 
     protected String jobConfigurationJson(Path wrapperFile) {
@@ -142,7 +131,7 @@ class RescaleJob {
         }
 
         def jobAnalyses = task.config.ext.jobAnalyses
-
+        def analysisConfig = []
 
         for (int i = 0; i < jobAnalyses.size(); i++) {
             def command = ":"
@@ -150,20 +139,20 @@ class RescaleJob {
                 command = commandString(wrapperFile)   
             }
 
-            jobAnalyses[i] = jobAnalyseConfig(
+            analysisConfig.add(jobAnalyseConfig(
                     jobAnalyses[i].analysisCode,
                     jobAnalyses[i].analysisVersion,
                     command,
                     jobAnalyses[i].rescaleLicense,
                     jobAnalyses[i].onDemandLicenseSeller,
                     jobAnalyses[i].userDefinedLicenseSettings
-                )
+                ))
         }
         
 
         def config = [
             "name": task.name,
-            "jobanalyses": jobAnalyses
+            "jobanalyses": analysisConfig
         ]
 
         if (task.config.ext.billingPriorityValue != null) {
