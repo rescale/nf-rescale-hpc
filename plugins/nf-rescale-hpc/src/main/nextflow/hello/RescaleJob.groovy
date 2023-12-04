@@ -94,6 +94,11 @@ class RescaleJob {
             errorMessages << "Error: Job analysis version is not set in process. Set analysis version using ext.analysisVersion in process directives."
         }
 
+        if ((onDemandLicenseSeller != null && userDefinedLicenseSettings != null) ||
+            (rescaleLicense != null && userDefinedLicenseSettings != null)) {
+            errorMessages << "Error: On-Demand / Rescale License and User Defined Licenses can not both be set."
+        }
+
         // Rescale License defaults to false
         if (rescaleLicense == null) {
             rescaleLicense = false

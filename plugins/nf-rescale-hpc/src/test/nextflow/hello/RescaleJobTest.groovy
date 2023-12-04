@@ -77,7 +77,7 @@ class RescaleJobTest extends Specification {
         thrown(AbortOperationException)
     }
 
-    def 'should return proper job Analyse config when jobAnalyseConfig called'() {
+    def 'should return proper job Analyse config when jobAnalyseConfig called with rescale license'() {
         given: "a RescaleJob"
 
         // Spy on class
@@ -98,7 +98,7 @@ class RescaleJobTest extends Specification {
         
 
         when: 'jobAnalyseConfig is called'
-        def value = handlerSpy.jobAnalyseConfig("test", "testVersion", "test command", "true", [code:'onDemand'], [code:'userDefined'])
+        def value = handlerSpy.jobAnalyseConfig("test", "testVersion", "test command", "true", [code:'onDemand'], null)
 
 
         then: 'return map with correct config'
@@ -109,7 +109,43 @@ class RescaleJobTest extends Specification {
             "command":"test command",
             "hardware":["coreType":'testMachine', "coresPerSlot":123],
             "onDemandLicenseSeller":["code":'onDemand'],
-            "userDefinedLicenseSettings":['code':'userDefined']
+            "userDefinedLicenseSettings": null
+            ]
+    }
+
+    def 'should return proper job Analyse config when jobAnalyseConfig called with user license'() {
+        given: "a RescaleJob"
+
+        // Spy on class
+        def taskConfig = new TaskConfig()
+
+        def task = Mock(TaskRun) {
+            name >> "test123"
+            script >> "echo Hello World"
+            config >> taskConfig
+        }
+        def executor = Mock(RescaleExecutor) {
+            getOutputDir() >> Paths.get('/test/dir')
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) {
+            envVarsJson() >> ['test':'var']
+            hardwareConfig() >> ["coreType":"testMachine","coresPerSlot":123]
+        }
+        
+
+        when: 'jobAnalyseConfig is called'
+        def value = handlerSpy.jobAnalyseConfig("test", "testVersion", "test command", null, null, [code:'userDefined'])
+
+
+        then: 'return map with correct config'
+        value == [
+            "analysis":["code":"test", "version":"testVersion"],
+            "useRescaleLicense":false,
+            "envVars":["test":'var'],
+            "command":"test command",
+            "hardware":["coreType":'testMachine', "coresPerSlot":123],
+            "onDemandLicenseSeller": null,
+            "userDefinedLicenseSettings": ["code":'userDefined']
             ]
     }
 
