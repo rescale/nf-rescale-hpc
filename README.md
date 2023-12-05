@@ -23,8 +23,8 @@ To launch a Rescale Job using Nextflow
 
 1. Set the plugin to `nf-rescale-hpc` and executor to `rescale-executor` in `nextflow.config` file
 
-**NOTE**: Currently you will need to provide the version for the executor (Default 0.4.0). (Issue unresolved) 
-```
+**NOTE**: Currently you will need to provide the version for the executor (Default 0.4.0). (After official release, version number should reflect the latest release) 
+```groovy
 plugins {
   id 'nf-rescale-hpc@<version>'
 } 
@@ -36,7 +36,9 @@ process {
 2. Set RESCALE_PLATFORM_URL and RESCALE_CLUSTER_TOKEN (API Token) in `nextflow.config` file
 
 **NOTE**: Any environmental variable that is required to be shared among jobs need to be provided using env
-```
+
+**NOTE#2**: User set license must also be provided through env either from `nextflow.config` or through env input [Nextflow Documentation](https://www.nextflow.io/docs/latest/process.html#input-type-env)
+```groovy 
 env {
   RESCALE_PLATFORM_URL = "https://platform.rescale.com"
   RESCALE_CLUSTER_TOKEN = "<API_KEY>"
@@ -44,11 +46,13 @@ env {
 ```
 
 3. Configure your nextflow file with the software and hardware to run the process using the directive
-```
+```groovy
 process <processName> {
-  ext.analysisCode="msc_nastran"
-  ext.analysisVersion="2023.2"
-  ext.rescaleLicense=true
+  ext.jobAnalyses=[[
+    "analysisCode":"msc_nastran"
+    "analysisVersion":"2023.2"
+    "rescaleLicense":true
+  ]]
   machineType "emerald"
   cpus 1
   
@@ -57,31 +61,58 @@ process <processName> {
 ```
 **NOTE:** process configuration can be specified in `nextflow.config` using [`withName`](https://www.nextflow.io/docs/latest/config.html#process-selectors) or [`withLabel`](https://www.nextflow.io/docs/latest/config.html#process-selectors) tags.
 
-### Available Parameters Supported (First Pass)
+### Available Parameters Supported (Second Pass)
 ---
 
 The following parameters are currently supported and functional. The parameters supported are required for any Rescale Job, hence it was the first parameters to be supported.
 
-**ext.analysisCode** (Required): The software code
+**ext.jobAnalyses** (Required) (datatype: `List<jobAnalysis>`): The configuration of one or multiple analyses.
+*Must be passed as a list of jobAnalysis*.
 
-**ext.analysisVersion** (Required): The software version
+The jobAnalysis (datatype: `Map`) have the following paramaters
 
-**machineType** (Required): The hardware used to run the software
+- **analysisCode** (Required)(datatype: `String`): The software code
 
-**cpus** (Defaults to 1): The number of cores of the hardware
+- **analysisVersion** (Required)(datatype: `String`): The software version
 
-**ext.rescaleLicense** (Defaults to false): Whether or not to use Rescale License when running a software (Custom License can be passed using Nextflow environmental values)
+- **rescaleLicense** (Defaults to false)(datatype: `bool`): Whether or not to use Rescale License when running a software (Custom License can be passed using Nextflow environmental values)
 
-**ext.onDemandLicenseSeller** (Optional): A dictionary with the schema of `["code":"codeValue", "name":"nameValue"]` where code and name are the license provider’s code and name, respectively.
+- **onDemandLicenseSeller** (Optional)(datatype: `Map`): A dictionary with the schema of `["code":"codeValue", "name":"nameValue"]` where code and name are the license provider’s code and name, respectively.
 
+- **userDefinedLicenseSettings** (Optional)(datatype: `Map`): User-defined license settings for the analysis is a definition of multiple sets of license feature counts that the user expects the analysis to use for running the job
 
-### Future Parameters to be supported (Second Pass)
+    ```groovy
+    // Example of userDefinedLicense
+    process <processName> {
+    ext.userDefinedLicenseSettings=[[
+        ...
+        "userDefinedLicenseSettings": [
+            'featureSets':[
+                ['name':'<featureset name>', 'features': [
+                    ['name':'<feature name>', 'count':<count value>]
+                    ]
+                ]
+            ]
+        ]
+    
+    ]]
+    ...
+    }
+    ```
+
+**machineType** (Required)(datatype: `String`): The hardware used to run the software
+
+**cpus** (Defaults to 1)(datatype: `int`): The number of cores of the hardware
+
+**ext.billingPriorityValue** (Optional)(datatype: `String`): Priority for job hardware
+
+**ext.wallTime** (Optional)(datatype: `int`): The time a Rescale Job will be allowed to run. Options are: 'INSTANT’ for On Demand Priority, 'ON_DEMAND’ for On Demand Economy, 'RESERVED’ for On Demand Reserved.
+
+**ext.projectId** (Optional)(datatype: `String`): 
+
+### Future Parameters to be supported (Third Pass)
 ---
-The following parameters will be supported in the next release version of Rescale Executor. The parameters are chosen due to the projection of future demands.
-
-**ext.billingPriorityValue**: Priority for job hardware
-
-**ext.userDefinedLicenseSettings**: User-defined license settings for the analysis is a definition of multiple sets of license feature counts that the user expects the analysis to use for running the job
+Currently there are no further parameters considered for support
 
 ### Unsupported and Future-Excluded Parameters
 ---
@@ -115,16 +146,45 @@ As stated above replace ```<personal-access-token>``` and ```<nextflow-file>```
 
 Make sure to move ```nextflow.config``` and ```nextflow-file``` inside ```nf-rescale-hpc```, and move any input file into ```~/storage*/projectdata``` 
 
----
+## Potential Non-Error Failures
+### 1. Pre-mature termination
+#### Condition
+A job spawned by Nextflow was terminated before validation is complete, the job will not have update status, hence, Nextflow will be stuck waiting for a completed status or stopping status.
+#### Resolution
+Stop the master Nextflow job. (Resume parameter will continue from the current point) 
+    
+### 2. Missing stdout due to job failures
+#### Condition
+A Missing stdout error from Nextflow config, due to job terminated with a Completed Status that did not execute properly.
+#### Resolution
+Fix the issue of the terminated job and re-run Nextflow
+#### Further Work Required
+1. Add the completed status termination in `RescaleTaskHandler.groovy` in `checkIfCompleted` function or
+2. Add a status in Rescale Web to signify termination
 
 
-The plugin is a rescale version of `nf-hello` used a starting point to create a custom Rescale Executor Plugin. The plugin contains:
+### 3. Missing stdout due to file location
+#### Condition
+A Missing stdout error from Nextflow config, due to Nextflow unable to locate .nextflow or work directory. Typically occurs if the directories are situated in an incorrect location or directories have been deleted.
+#### Resolution
+Verify .nextflow and work directory are created properly at the place of execution
 
-- A custom Rescale function called `hifromrescale` that outputs `Hello, Welcome to Rescale`
-- A custom trace observer that prints a message when the workflow starts and when the workflow completes
-- A custom channel factory called `reverse`
-- A custom operator called `goodbye`
-- A custom function called `randomString`
+### 4. StorageId Missing
+#### Condition
+Error thrown due to storageId unable to locate from parsing the `$HOME` directory
+#### Resolution
+1. Check if storage device is attached 
+2. Check if storage device directory is located in the `$HOME` directory
+3. Check if storage id search pattern is up-to-practices in `RescaleJob.groovy`
+
+Note: For local execution, manipulate `getStorageId` to output the desired storageId
+
+### 5. General advices for analyzing errors
+#### Condition
+Error thrown with a minimum explanation
+#### Resolution
+Check `.nextflow.log` generated from nextflow during execution
+
 
 ## Example Local Implementation
 In `example` directory, there is a simple nextflow script called `hello-rescale.nf`. The following script implements rescale custom function `hifromrescale` to showcase how the plugin can be implemented.
