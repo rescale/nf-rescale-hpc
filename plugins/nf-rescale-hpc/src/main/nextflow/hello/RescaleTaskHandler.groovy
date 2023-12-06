@@ -75,8 +75,23 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
     // Initalization required after constractor
     protected RescaleTaskHandler initialize() {
         getConfigEnviromentVariable()
+        getEnvironmentVariable()
 
         return this
+    }
+
+    protected void getEnvironmentVariable() {
+        List<String> errorMessages = []
+        Map<String,String> environment = System.getenv()
+        if (!environment.containsKey("RESCALE_JOB_ID")) {
+            errorMessages << "unable to find RESCALE_JOB_ID in the environmental variable"
+        }
+        if (!errorMessages.isEmpty()) {
+            throw new AbortOperationException(errorMessages.join("\n"))
+        }
+
+        RESCALE_JOB_ID = environment["RESCALE_JOB_ID"]
+
     }
 
     protected void getConfigEnviromentVariable() {
@@ -89,16 +104,12 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         if (!environment.containsKey('RESCALE_PLATFORM_URL')) {
             errorMessages << "RESCALE_PLATFORM_URL env in nextflow.config was not set"
         }
-        if (System.getenv("RESCALE_JOB_ID") == null) {
-            errorMessages << "unable to find RESCALE_JOB_ID in the environmental variable"
-        }
         if (!errorMessages.isEmpty()) {
             throw new AbortOperationException(errorMessages.join("\n"))
         }
 
         RESCALE_CLUSTER_TOKEN = environment['RESCALE_CLUSTER_TOKEN']
         RESCALE_PLATFORM_URL = environment['RESCALE_PLATFORM_URL']
-        RESCALE_JOB_ID = System.getenv("RESCALE_JOB_ID")
 
     }
 
