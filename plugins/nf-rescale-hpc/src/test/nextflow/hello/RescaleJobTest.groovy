@@ -19,7 +19,15 @@ class RescaleJobTest extends Specification {
 
         // Spy on class
         def taskConfig = new TaskConfig()
-        taskConfig.ext = ["analysisCode":"testCode", "analysisVersion":"testVersion", "rescaleLicense":"true"]
+        taskConfig.ext = [
+            "jobAnalyses":[[
+                "analysisCode": "test",
+                "analysisVersion": "v1",
+                "rescaleLicense":"true",
+            ]],
+            "billingPriorityValue": "test",
+            "projectId": "testProject"
+        ]
         taskConfig.cpus = 123
         taskConfig.machineType = "testMachine"
 
@@ -32,9 +40,8 @@ class RescaleJobTest extends Specification {
             getOutputDir() >> Paths.get('/test/dir')
         }
         def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) {
-            commandString(_) >> '"test command"'
-            envVarsJson() >> "{'test':'var'}"
-            onDemandLicenseSeller() >> "{code:'onDemand'}"
+            jobAnalyseConfig(_,_,_,_,_,_) >> ["jobAnalyses": "testAnalyses"]
+            commandString(_) >> "test command"
         }
         
 
@@ -44,27 +51,7 @@ class RescaleJobTest extends Specification {
 
 
         then: 'return json with correct config'
-        value == '''
-        {
-            "name": "test123",
-            "jobanalyses": [
-                {
-                    "analysis": {
-                        "code": "testCode",
-                        "version": "testVersion"
-                    },
-                    "useRescaleLicense": true,
-                    "envVars": {'test':'var'},
-                    "command": "test command",
-                    "hardware": {
-                        "coreType": "testMachine",
-                        "coresPerSlot": 123
-                    },
-                    "onDemandLicenseSeller": {code:'onDemand'}
-                }
-            ]
-        }
-        '''
+        value == '''{"name":"test123","jobanalyses":[{"jobAnalyses":"testAnalyses"}],"billingPriorityValue":"test","project_id":"testProject"}'''
     }
 
     def 'should throw an error if improper rescale job json when jobConfigurationJson called'() {
@@ -86,7 +73,107 @@ class RescaleJobTest extends Specification {
         def value = handlerSpy.jobConfigurationJson()
 
 
-        then: 'return json with correct config'
+        then: 'throw an error'
+        thrown(AbortOperationException)
+    }
+
+    def 'should return proper job Analyse config when jobAnalyseConfig called with rescale license'() {
+        given: "a RescaleJob"
+
+        // Spy on class
+        def taskConfig = new TaskConfig()
+
+        def task = Mock(TaskRun) {
+            name >> "test123"
+            script >> "echo Hello World"
+            config >> taskConfig
+        }
+        def executor = Mock(RescaleExecutor) {
+            getOutputDir() >> Paths.get('/test/dir')
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) {
+            envVarsJson() >> ['test':'var']
+            hardwareConfig() >> ["coreType":"testMachine","coresPerSlot":123]
+        }
+        
+
+        when: 'jobAnalyseConfig is called'
+        def value = handlerSpy.jobAnalyseConfig("test", "testVersion", "test command", "true", [code:'onDemand'], null)
+
+
+        then: 'return map with correct config'
+        value == [
+            "analysis":["code":"test", "version":"testVersion"],
+            "useRescaleLicense":"true",
+            "envVars":["test":'var'],
+            "command":"test command",
+            "hardware":["coreType":'testMachine', "coresPerSlot":123],
+            "onDemandLicenseSeller":["code":'onDemand'],
+            "userDefinedLicenseSettings": null
+            ]
+    }
+
+    def 'should return proper job Analyse config when jobAnalyseConfig called with user license'() {
+        given: "a RescaleJob"
+
+        // Spy on class
+        def taskConfig = new TaskConfig()
+
+        def task = Mock(TaskRun) {
+            name >> "test123"
+            script >> "echo Hello World"
+            config >> taskConfig
+        }
+        def executor = Mock(RescaleExecutor) {
+            getOutputDir() >> Paths.get('/test/dir')
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) {
+            envVarsJson() >> ['test':'var']
+            hardwareConfig() >> ["coreType":"testMachine","coresPerSlot":123]
+        }
+        
+
+        when: 'jobAnalyseConfig is called'
+        def value = handlerSpy.jobAnalyseConfig("test", "testVersion", "test command", null, null, [code:'userDefined'])
+
+
+        then: 'return map with correct config'
+        value == [
+            "analysis":["code":"test", "version":"testVersion"],
+            "useRescaleLicense":false,
+            "envVars":["test":'var'],
+            "command":"test command",
+            "hardware":["coreType":'testMachine', "coresPerSlot":123],
+            "onDemandLicenseSeller": null,
+            "userDefinedLicenseSettings": ["code":'userDefined']
+            ]
+    }
+
+    def 'should throw an error if analysisCode and analysisVersion not supplied'() {
+        given: "a RescaleJob"
+
+        // Spy on class
+        def taskConfig = new TaskConfig()
+
+        def task = Mock(TaskRun) {
+            name >> "test123"
+            script >> "echo Hello World"
+            config >> taskConfig
+        }
+        def executor = Mock(RescaleExecutor) {
+            getOutputDir() >> Paths.get('/test/dir')
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor]) {
+            envVarsJson() >> ['test':'var']
+            hardwareConfig() >> ["coreType":"testMachine","coresPerSlot":123]
+        }
+        
+
+        when: 'jobAnalyseConfig is called'
+        def value = handlerSpy.jobAnalyseConfig(null,  null, "test command", "true", [code:'onDemand'], [code:'userDefined'])
+
+
+        then: 'throw an error'
         thrown(AbortOperationException)
     }
 
@@ -127,7 +214,7 @@ class RescaleJobTest extends Specification {
 
 
         then: 'return string with correct structure'
-        value == '"cd $HOME/test\\nchmod +x $HOME/test/file\\n$HOME/test/file"'
+        value == 'cd $HOME/test\nchmod +x $HOME/test/file\n$HOME/test/file'
     }
 
     def 'should return a environment variables in json format when envVarsJson is called'() {
@@ -145,7 +232,7 @@ class RescaleJobTest extends Specification {
 
 
         then: 'return json with correct environment'
-        value == '{"TEST_ENV":"123","TEST_ENV_1":"456"}'
+        value == ["TEST_ENV":"123","TEST_ENV_1":"456"]
     }
 
     def 'should return a empty environment variables in json format if nextflow env is empty'() {
@@ -161,7 +248,7 @@ class RescaleJobTest extends Specification {
 
 
         then: 'return json with correct environment'
-        value == '{}'
+        value == [:]
     }
 
     def 'should get a custom absolute path path if customAbsolutePath is called' () {
@@ -198,5 +285,81 @@ class RescaleJobTest extends Specification {
 
         then: 'return the normal absolute path'
         value == Paths.get('/notHome/dir/test')
-    }   
+    }
+
+    def 'should return a hardware configuraiton json with walltime'() {
+        given: "a RescaleJob"
+
+        // Spy on class
+        def taskConfig = new TaskConfig()
+        taskConfig.ext = [:]
+        taskConfig.cpus = 123
+        taskConfig.machineType = "testMachine"
+
+        def task = Mock(TaskRun) {
+            config >> taskConfig
+        }
+        def executor = Mock(RescaleExecutor) {
+            getOutputDir() >> Paths.get('/test/dir')
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor])
+        
+
+        when: 'hardwareConfig is called without specified walltime'
+        def value = handlerSpy.hardwareConfig()
+
+
+        then: 'return json with correct config'
+        value == ["coreType":"testMachine","coresPerSlot":123]
+    }
+
+    def 'should return a hardware configuraiton json with walltime'() {
+        given: "a RescaleJob"
+
+        // Spy on class
+        def taskConfig = new TaskConfig()
+        taskConfig.ext = ["wallTime":5]
+        taskConfig.cpus = 123
+        taskConfig.machineType = "testMachine"
+
+        def task = Mock(TaskRun) {
+            config >> taskConfig
+        }
+        def executor = Mock(RescaleExecutor) {
+            getOutputDir() >> Paths.get('/test/dir')
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor])
+        
+
+        when: 'hardwareConfig is called without specified walltime'
+        def value = handlerSpy.hardwareConfig()
+
+
+        then: 'return json with correct config'
+        value == ["coreType":"testMachine","coresPerSlot":123,"walltime":5]
+    }
+
+    def 'should throw error if machineType is not specified'() {
+        given: "a RescaleJob"
+
+        // Spy on class
+        def taskConfig = new TaskConfig()
+        taskConfig.cpus = 123
+
+        def task = Mock(TaskRun) {
+            config >> taskConfig
+        }
+        def executor = Mock(RescaleExecutor) {
+            getOutputDir() >> Paths.get('/test/dir')
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor])
+        
+
+        when: 'hardwareConfig is called'
+        def value = handlerSpy.hardwareConfig()
+
+
+        then: 'return json with correct config'
+        thrown(AbortOperationException)
+    }
 }

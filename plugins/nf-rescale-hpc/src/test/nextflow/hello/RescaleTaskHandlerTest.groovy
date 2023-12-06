@@ -154,7 +154,7 @@ class RescaleTaskHandlerTest extends Specification {
             e.message == "Error: 400 - Bad Request"
     }
 
-     def 'should get status of an example rescale job' () {
+    def 'should get status of an example rescale job' () {
         given: 'a RescaleTaskHandler'
         // Mock HttpURLConnection
         def inputStream = new ByteArrayInputStream('{"results":[{"status":"Completed"}]}'.getBytes())
@@ -292,6 +292,7 @@ class RescaleTaskHandlerTest extends Specification {
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             getStatuses(_) >> [["status":"Completed"]]
             isRunning() >> true
+            postComment(_,_,_) >> null
         }
         handlerSpy.setJobId("123")
         
@@ -317,6 +318,7 @@ class RescaleTaskHandlerTest extends Specification {
             getStatuses(_) >> [["status":"Stopping", "statusReason": "User Terminated"]]
             isRunning() >> true
             readExitFile() >> 1
+            postComment(_,_,_) >> null
         }
         handlerSpy.setJobId("123")
         
@@ -342,6 +344,7 @@ class RescaleTaskHandlerTest extends Specification {
             getStatuses(_) >> [["status":"Stopping", "statusReason": "A run failed"]]
             isRunning() >> true
             readExitFile() >> 1
+            postComment(_,_,_) >> null
         }
         handlerSpy.setJobId("123")
         
@@ -477,6 +480,7 @@ class RescaleTaskHandlerTest extends Specification {
         }
         def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
             getConfigEnviromentVariable() >> null
+            getEnvironmentVariable() >> null
         }
 
         when: 'initialize is called'
@@ -539,4 +543,170 @@ class RescaleTaskHandlerTest extends Specification {
             Exception e  = thrown()
             e.message == "Error: 400 - Bad Request"
     }
+
+    def 'parseError should return a formated error string' () {
+        given: 'a RescaleTaskHandler'
+        // Spy on class
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+        }
+
+        when: 'parseError is called'
+        Object json = ["property1":["property2": ["testError1"], "property3": ["testError2"]]]
+        def value = handlerSpy.parseError(json)
+
+
+        then: 'formate the error json'
+        value == "property1 -> property2 has an error: testError1\nproperty1 -> property3 has an error: testError2\n"
+    }
+
+    def 'parseError should call present available project id during projectid error' () {
+        given: 'a RescaleTaskHandler'
+        // Spy on class
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+            getProjectId() >> [["id": "123", "name": "project1"]]
+        }
+
+        when: 'parseError is called'
+        Object json = ["projectId":["invalid project id"]]
+        def value = handlerSpy.parseError(json)
+
+
+        then: 'formate the error json with available projectId'
+        value == "projectId has an error: invalid project id, Available project (id -> name): 123 -> project1. Please select the approprate project id.\n"
+    }
+
+    def 'should get project id available for user' () {
+        given: 'a RescaleTaskHandler'
+        // Mock HttpURLConnection
+        def inputStream = new ByteArrayInputStream('{"results":[{"id":"123", "name": "name123"}]}'.getBytes())
+        def httpURLConnection = Mock(HttpURLConnection) {
+            getInputStream() >> inputStream
+            getResponseCode() >> 200
+        }
+            
+        // Spy on class
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun)  {
+            workDir >> Paths.get('/work/dir')
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+            createConnection(_) >> httpURLConnection
+        }
+
+
+        when: 'getProjectId is called'
+        def content = handlerSpy.getProjectId()
+
+        then: 'return a job details' 
+            content == [['id':'123', 'name':'name123']]
+
+    }
+
+    def 'getProjectId should throw an exception' () {
+        given: 'a RescaleTaskHandler'
+        def executor = Mock(RescaleExecutor)
+        // Mock HttpURLConnection
+        def httpURLConnection = Mock(HttpURLConnection) {
+            getResponseMessage() >> "Bad Request"
+            getResponseCode() >> 400
+        }
+            
+        // Spy on class
+        def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+            createConnection(_) >> httpURLConnection
+        }
+
+
+        when: 'getProjectId is called'
+        handlerSpy.getProjectId()
+
+        then: 'throw an exception' 
+            Exception e  = thrown()
+            e.message == "Error: 400 - Bad Request"
+    }
+
+    def 'should send a comment to job when postComment is called' () {
+         given: 'a RescaleTaskHandler'
+        def executor = Mock(RescaleExecutor)
+        // Mock HttpURLConnection
+        def inputStream = new ByteArrayInputStream('{"comment":"Test"}'.getBytes())
+        def outputStream = new ByteArrayOutputStream()
+        def httpURLConnection = Mock(HttpURLConnection) {
+            getInputStream() >> inputStream
+            getOutputStream() >> outputStream
+            getResponseCode() >> 201
+        }
+
+        def jobConfig = Mock(RescaleJob) {
+            commentJson(_) >> "{}"
+        }
+
+        // Spy on class
+        def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+            createConnection(_) >> httpURLConnection
+        }
+        handlerSpy.metaClass.setProperty(handlerSpy, 'rescaleJobConfig', jobConfig)
+
+
+        when: 'postComment is called'
+        def content = handlerSpy.postComment('childId123','testName','testStatus')
+
+        then: 'return a comment details' 
+            content == ["comment":"Test"]
+    }
+
+    def 'postComment should throw an exception' () {
+        given: 'a RescaleTaskHandler'
+        // Mock HttpURLConnection
+        def outputStream = new ByteArrayOutputStream()
+        def httpURLConnection = Mock(HttpURLConnection) {
+            getOutputStream() >> outputStream
+            getResponseMessage() >> "Bad Request"
+            getResponseCode() >> 400
+        }
+
+        def jobConfig = Mock(RescaleJob) {
+            commentJson(_) >> "{}" 
+        }
+            
+        // Spy on class
+        def executor = Mock(RescaleExecutor)
+        def task = Mock(TaskRun)  {
+            workDir >> Paths.get('/work/dir')
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+            createConnection(_) >> httpURLConnection
+        }
+        handlerSpy.metaClass.setProperty(handlerSpy, 'rescaleJobConfig', jobConfig)
+
+
+        when: 'postComment is called incorrectly'
+        def content = handlerSpy.postComment('childId123','testName','testStatus')
+
+        then: 'throw an exception' 
+            Exception e  = thrown()
+            e.message == "Error: 400 - Bad Request"
+
+    }
+
 }
