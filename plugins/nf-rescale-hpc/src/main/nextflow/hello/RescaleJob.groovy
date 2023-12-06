@@ -179,4 +179,12 @@ class RescaleJob {
         """
     }
 
+    protected String commentJson(String message) {
+        return """
+        {
+            "content": "$message"
+        }
+        """
+    }
+
 }

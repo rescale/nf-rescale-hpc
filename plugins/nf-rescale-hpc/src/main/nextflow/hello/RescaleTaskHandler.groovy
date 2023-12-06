@@ -43,6 +43,7 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
     protected String RESCALE_CLUSTER_TOKEN
     protected String RESCALE_PLATFORM_URL
+    protected String RESCALE_JOB_ID
 
     protected String getRESCALE_CLUSTER_TOKEN() {
         return this.RESCALE_CLUSTER_TOKEN
@@ -50,6 +51,10 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
     protected String getRESCALE_PLATFORM_URL() {
         return this.RESCALE_PLATFORM_URL
+    }
+
+    protected String getRESCALE_JOB_ID() {
+        return this.RESCALE_JOB_ID
     }
 
     protected String setJobId(String jobId) { this.jobId = jobId }
@@ -84,12 +89,16 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         if (!environment.containsKey('RESCALE_PLATFORM_URL')) {
             errorMessages << "RESCALE_PLATFORM_URL env in nextflow.config was not set"
         }
+        if (System.getenv("RESCALE_JOB_ID") == null) {
+            errorMessages << "unable to find RESCALE_JOB_ID in the environmental variable"
+        }
         if (!errorMessages.isEmpty()) {
             throw new AbortOperationException(errorMessages.join("\n"))
         }
 
         RESCALE_CLUSTER_TOKEN = environment['RESCALE_CLUSTER_TOKEN']
         RESCALE_PLATFORM_URL = environment['RESCALE_PLATFORM_URL']
+        RESCALE_JOB_ID = System.getenv("RESCALE_JOB_ID")
 
     }
 
@@ -294,6 +303,44 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         }
     }
 
+    protected Map<String,String> postComment(String childJobId, String jobName, String status) {
+        def connection = this.createConnection("/api/v3/jobs/$RESCALE_JOB_ID/comments/")
+        connection.setRequestMethod('POST')
+
+        // Header
+        connection.setRequestProperty('Content-Type', 'application/json')
+
+        connection.doOutput = true
+        connection.doInput = true
+
+        // Body
+        String message = "$jobName (Job [$childJobId]($RESCALE_PLATFORM_URL/jobs/$childJobId)) has $status"
+        def bodyJson = rescaleJobConfig.commentJson(message)
+
+        connection.outputStream.withWriter {
+            writer -> writer.write(bodyJson)
+        }
+
+        def slurper = new JsonSlurper()
+        
+        if (connection.getResponseCode() >= 200 && connection.getResponseCode() < 400) {
+            def content = slurper.parseText(connection.inputStream.text)
+
+            return content
+
+        } else {
+            def errorMessage = "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
+            
+            if (connection.errorStream != null) {
+                def errorJson = slurper.parse(connection.errorStream)
+
+                errorMessage += "\nError Message: Unable to post a comment to ${RESCALE_JOB_ID}. ${parseError(errorJson)}"
+            }
+    
+            throw new AbortOperationException(errorMessage)
+        }
+    }
+
     @Override
     void submit() {
 
@@ -336,6 +383,8 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
     private final String COMPLETED = "Completed"
     private final String STOPPING = "Stopping"
     private final String RUN_FAILED = "A run failed"
+    // For posting a comment (postComment)
+    private final String FAILED = "Failed"
 
     @Override
     boolean checkIfRunning() {
@@ -401,6 +450,8 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
             if (statusReason == RUN_FAILED) {
                 task.stderr = errorFile
             }
+
+            postComment(jobId, task.name, FAILED)
             
             log.info "Job $jobId is terminated. Reason: $statusReason"
 
@@ -410,6 +461,8 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         else if (result) {
             task.stdout = outputFile
             task.exitStatus = 0
+
+            postComment(jobId, task.name, COMPLETED)
 
             log.info "[Rescale Executor] Job $jobId is Completed"
 
