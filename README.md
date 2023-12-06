@@ -1,7 +1,7 @@
 # Rescale Nextflow Plugin
 This project contains Rescale's custom Nextflow executor called `nf-rescale-hpc`. Rescale Executor is used to launch Rescale Jobs using a Nextflow file and supports multiple features of Nextflow.
 
-## How to Launch a Rescale Job
+## How to Launch a Rescale Job from a Rescale Platform
 To launch a Rescale Job, the Nextflow file (.nf) should included mandatory configurations:
 
 ### Pre-requisites
@@ -23,128 +23,129 @@ To launch a Rescale Job using Nextflow
 
 1. Set the plugin to `nf-rescale-hpc` and executor to `rescale-executor` in `nextflow.config` file
 
-**NOTE**: Currently you will need to provide the version for the executor (Default 0.4.0). (After official release, version number should reflect the latest release) 
-```groovy
-plugins {
-  id 'nf-rescale-hpc@<version>'
-} 
+    **NOTE**: Currently you will need to provide the version for the executor (Default 0.4.0). (After official release, version number should reflect the latest release) 
+    ```groovy
+    plugins {
+    id 'nf-rescale-hpc@<version>'
+    } 
 
-process {
-  executor='rescale-executor'
-}
-```
+    process {
+    executor='rescale-executor'
+    }
+    ```
 2. Set RESCALE_PLATFORM_URL and RESCALE_CLUSTER_TOKEN (API Token) in `nextflow.config` file
 
-**NOTE**: Any environmental variable that is required to be shared among jobs need to be provided using env
+    **NOTE**: Any environmental variable that is required to be shared among jobs need to be provided using env
 
-**NOTE#2**: User set license must also be provided through env either from `nextflow.config` or through env input [Nextflow Documentation](https://www.nextflow.io/docs/latest/process.html#input-type-env)
-```groovy 
-env {
-  RESCALE_PLATFORM_URL = "https://platform.rescale.com"
-  RESCALE_CLUSTER_TOKEN = "<API_KEY>"
-}
-```
-
-3. Configure your nextflow file with the software and hardware to run the process using the directive
-```groovy
-process <processName> {
-  ext.jobAnalyses=[[
-    "analysisCode":"msc_nastran"
-    "analysisVersion":"2023.2"
-    "rescaleLicense":true
-  ]]
-  machineType "emerald"
-  cpus 1
-  
-  ...
-}
-```
-**NOTE:** process configuration can be specified in `nextflow.config` using [`withName`](https://www.nextflow.io/docs/latest/config.html#process-selectors) or [`withLabel`](https://www.nextflow.io/docs/latest/config.html#process-selectors) tags.
-
-### Available Parameters Supported (Second Pass)
----
-
-The following parameters are currently supported and functional. The parameters supported are required for any Rescale Job, hence it was the first parameters to be supported.
-
-**ext.jobAnalyses** (Required) (datatype: `List<jobAnalysis>`): The configuration of one or multiple analyses.
-*Must be passed as a list of jobAnalysis*.
-
-The jobAnalysis (datatype: `Map`) have the following paramaters
-
-- **analysisCode** (Required)(datatype: `String`): The software code
-
-- **analysisVersion** (Required)(datatype: `String`): The software version
-
-- **rescaleLicense** (Defaults to false)(datatype: `bool`): Whether or not to use Rescale License when running a software (Custom License can be passed using Nextflow environmental values)
-
-- **onDemandLicenseSeller** (Optional)(datatype: `Map`): A dictionary with the schema of `["code":"codeValue", "name":"nameValue"]` where code and name are the license provider’s code and name, respectively.
-
-- **userDefinedLicenseSettings** (Optional)(datatype: `Map`): User-defined license settings for the analysis is a definition of multiple sets of license feature counts that the user expects the analysis to use for running the job
-
-    ```groovy
-    // Example of userDefinedLicense
-    process <processName> {
-    ext.userDefinedLicenseSettings=[[
-        ...
-        "userDefinedLicenseSettings": [
-            'featureSets':[
-                ['name':'<featureset name>', 'features': [
-                    ['name':'<feature name>', 'count':<count value>]
-                    ]
-                ]
-            ]
-        ]
-    
-    ]]
-    ...
+    **NOTE#2**: User set license must also be provided through env either from `nextflow.config` or through env input [Nextflow Documentation](https://www.nextflow.io/docs/latest/process.html#input-type-env)
+    ```groovy 
+    env {
+    RESCALE_PLATFORM_URL = "https://platform.rescale.com"
+    RESCALE_CLUSTER_TOKEN = "<API_KEY>"
     }
     ```
 
-**machineType** (Required)(datatype: `String`): The hardware used to run the software
+3. Configure your nextflow file with the software and hardware to run the process using the directive
+    ```groovy
+    process <processName> {
+    ext.jobAnalyses=[[
+        "analysisCode":"msc_nastran"
+        "analysisVersion":"2023.2"
+        "rescaleLicense":true
+    ]]
+    machineType "emerald"
+    cpus 1
+    
+    ...
+    }
+    ```
+    **NOTE:** process configuration can be specified in `nextflow.config` using [`withName`](https://www.nextflow.io/docs/latest/config.html#process-selectors) or [`withLabel`](https://www.nextflow.io/docs/latest/config.html#process-selectors) tags.
 
-**cpus** (Defaults to 1)(datatype: `int`): The number of cores of the hardware
+    ### Available Parameters Supported (Second Pass)
+    ---
 
-**ext.billingPriorityValue** (Optional)(datatype: `String`): Priority for job hardware
+    The following parameters are currently supported and functional. The parameters supported are required for any Rescale Job, hence it was the first parameters to be supported.
 
-**ext.wallTime** (Optional)(datatype: `int`): The time a Rescale Job will be allowed to run. Options are: 'INSTANT’ for On Demand Priority, 'ON_DEMAND’ for On Demand Economy, 'RESERVED’ for On Demand Reserved.
+    **ext.jobAnalyses** (Required) (datatype: `List<jobAnalysis>`): The configuration of one or multiple analyses.
+    *Must be passed as a list of jobAnalysis*.
 
-**ext.projectId** (Optional)(datatype: `String`): 
+    The jobAnalysis (datatype: `Map`) have the following paramaters
 
-### Future Parameters to be supported (Third Pass)
----
-Currently there are no further parameters considered for support
+    - **analysisCode** (Required)(datatype: `String`): The software code
 
-### Unsupported and Future-Excluded Parameters
----
-The following parameters will be not be supported now or in the future, because the parameters have a Nextflow based solution.
+    - **analysisVersion** (Required)(datatype: `String`): The software version
 
-**preProcessScript**: Pre-processing script for analysis.
+    - **rescaleLicense** (Defaults to false)(datatype: `bool`): Whether or not to use Rescale License when running a software (Custom License can be passed using Nextflow environmental values)
 
-**postProcessScript**: Post-processing script for analysis.
+    - **onDemandLicenseSeller** (Optional)(datatype: `Map`): A dictionary with the schema of `["code":"codeValue", "name":"nameValue"]` where code and name are the license provider’s code and name, respectively.
 
----
+    - **userDefinedLicenseSettings** (Optional)(datatype: `Map`): User-defined license settings for the analysis is a definition of multiple sets of license feature counts that the user expects the analysis to use for running the job
+
+        ```groovy
+        // Example of userDefinedLicense
+        process <processName> {
+        ext.userDefinedLicenseSettings=[[
+            ...
+            "userDefinedLicenseSettings": [
+                'featureSets':[
+                    ['name':'<featureset name>', 'features': [
+                        ['name':'<feature name>', 'count':<count value>]
+                        ]
+                    ]
+                ]
+            ]
+        
+        ]]
+        ...
+        }
+        ```
+
+    **machineType** (Required)(datatype: `String`): The hardware used to run the software
+
+    **cpus** (Defaults to 1)(datatype: `int`): The number of cores of the hardware
+
+    **ext.billingPriorityValue** (Optional)(datatype: `String`): Priority for job hardware
+
+    **ext.wallTime** (Optional)(datatype: `int`): The time a Rescale Job will be allowed to run. Options are: 'INSTANT’ for On Demand Priority, 'ON_DEMAND’ for On Demand Economy, 'RESERVED’ for On Demand Reserved.
+
+    **ext.projectId** (Optional)(datatype: `String`): 
+
+    ### Future Parameters to be supported (Third Pass)
+    ---
+    Currently there are no further parameters considered for support
+
+    ### Unsupported and Future-Excluded Parameters
+    ---
+    The following parameters will be not be supported now or in the future, because the parameters have a Nextflow based solution.
+
+    **preProcessScript**: Pre-processing script for analysis.
+
+    **postProcessScript**: Post-processing script for analysis.
+
+    ---
+
 4. Run the following command as BYOD in Rescale as a job. Make sure to attach a storage device (HPS) alongside a directory called projectdata
-```bash
-curl -s "https://get.sdkman.io" | bash; 
-source ~/.sdkman/bin/sdkman-init.sh
-sdk install java 17.0.6-amzn;
-sdk default java 17.0.6-amzn
-sdk use java 17.0.6-amzn
-wget -qO- https://get.nextflow.io | bash
-chmod +x nextflow
-nf_home=$(pwd)
-git clone https:/<personal-access-token>@github.com/rescale/nf-rescale-hpc.git
-cd nf-rescale-hpc
-make buildPlugins
-mkdir -p ~/.nextflow/plugins
-cp -r build/plugins/* ~/.nextflow/plugins/
-<move file to where you are running nextflow>
-cd ~/storage*/projectdata # cd into any shared directory the following is an example
-$nf_home/nextflow run <nextflow file>
-```
-As stated above replace ```<personal-access-token>``` and ```<nextflow-file>``` 
+    ```bash
+    curl -s "https://get.sdkman.io" | bash; 
+    source ~/.sdkman/bin/sdkman-init.sh
+    sdk install java 17.0.6-amzn;
+    sdk default java 17.0.6-amzn
+    sdk use java 17.0.6-amzn
+    wget -qO- https://get.nextflow.io | bash
+    chmod +x nextflow
+    nf_home=$(pwd)
+    git clone https:/<personal-access-token>@github.com/rescale/nf-rescale-hpc.git
+    cd nf-rescale-hpc
+    make buildPlugins
+    mkdir -p ~/.nextflow/plugins
+    cp -r build/plugins/* ~/.nextflow/plugins/
+    <move file to where you are running nextflow>
+    cd ~/storage*/projectdata # cd into any shared directory the following is an example
+    $nf_home/nextflow run <nextflow file>
+    ```
+    As stated above replace ```<personal-access-token>``` and ```<nextflow-file>``` 
 
-Make sure to move ```nextflow.config``` and ```nextflow-file``` inside ```nf-rescale-hpc```, and move any input file into ```~/storage*/projectdata``` 
+    Make sure to move ```nextflow.config``` and ```nextflow-file``` inside ```nf-rescale-hpc```, and move any input file into ```~/storage*/projectdata``` 
 
 ## Potential Non-Error Failures
 ### 1. Pre-mature termination
@@ -191,6 +192,8 @@ In `example` directory, there is a simple nextflow script called `hello-rescale.
 
 To run the `example` locally with a local Nextflow, configure a local Nextflow build with the following steps:
 
+**Note**: Follow [Step by Step](#step-by-step) up to step 4
+
 1. Clone the Nextflow repository in your computer into a sibling directory:
     ```bash
     git clone --depth 1 https://github.com/nextflow-io/nextflow ../nextflow
@@ -214,6 +217,8 @@ To run the `example` locally with a local Nextflow, configure a local Nextflow b
     ```
 
 5. Run Nextflow with the plugin, using `./launch.sh` as a drop-in replacement for the `nextflow` command, and adding the option `-plugins nf-rescale-hpc` to load the plugin:
+
+    **Note**: Change the `getStorageId` inside `RescaleExecutor.groovy` to output the desired storageId of the storage device(HPS) id currently up and running inside Rescale Environment
     ```bash
     ./launch.sh run example/hello-rescale.nf -plugins nf-rescale-hpc
     ```
@@ -251,6 +256,14 @@ To run the `example` locally with a local Nextflow, configure a local Nextflow b
 
 ## Plugin classes
 
+### Custom Rescale Classes
+- `RescaleExecutor`: the custom Rescale Nextflow Executor designed for workflows
+
+- `RescaleTaskHandler`: custom TaskHandler responsible for API calls and status tracking
+
+- `RescaleJob`: custom class responsible for configuring parameters of a Rescale Job
+
+### Existing Classes from nf-hello 
 - `HelloConfig`: shows how to handle options from the Nextflow configuration
 
 - `HelloExtension`: shows how to create custom channel factories, operators, and fuctions that can be included into pipeline scripts
