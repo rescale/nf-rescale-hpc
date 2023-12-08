@@ -27,14 +27,12 @@ class RescaleJob {
         this.storageId = executor.getStorageId()
     }
 
-    protected String envVarsJson() {
+    protected Map envVarsJson() {
         if (task.getEnvironment() == null) {
-            return "{}"
+            return [:]
         }
 
-        def json = new JsonBuilder(task.getEnvironment())
-
-        return json.toString()
+        return task.getEnvironment()
     }
 
     protected Path getCustomAbsolutePath(Path path) {
@@ -52,59 +50,125 @@ class RescaleJob {
         def path = getCustomAbsolutePath(wrapperFile.getParent()).toString()
         def wrapper = getCustomAbsolutePath(wrapperFile).toString()
 
-        def command = "cd $path\nchmod +x $wrapper\n$wrapper"
-        def json = new JsonBuilder(command)
-
-        return json.toString()
+        return "cd $path\nchmod +x $wrapper\n$wrapper"
     }
 
-    protected String onDemandLicenseSeller() {
-        return new JsonBuilder(task.config.ext.onDemandLicenseSeller).toString()
-    }
-
-    protected String jobConfigurationJson(Path wrapperFile) {
+    protected Map hardwareConfig() {
         List<String> errorMessages = []
-        if (task.config.ext.analysisCode == null) {
-            errorMessages << "Error: Job analysis software is not set in process. Set analysis software using ext.analysisCode in process directives."
-        }
-
-        if (task.config.ext.analysisVersion == null) {
-            errorMessages << "Error: Job analysis version is not set in process. Set analysis version using ext.analysisVersion in process directives."
-        }
 
         if (task.config.machineType == null) {
             errorMessages << "Error: Hardware type is not set in process. Set hardware type using machineType in process directives."
-        }
-        // Rescale License defaults to false
-        if (task.config.ext.rescaleLicense == null) {
-            task.config.ext.rescaleLicense = false
         }
 
         if (!errorMessages.isEmpty()) {
             throw new AbortOperationException(errorMessages.join("\n"))
         }
 
-        return """
-        {
-            "name": "${task.name}",
-            "jobanalyses": [
-                {
-                    "analysis": {
-                        "code": "${task.config.ext.analysisCode}",
-                        "version": "${task.config.ext.analysisVersion}"
-                    },
-                    "useRescaleLicense": ${task.config.ext.rescaleLicense},
-                    "envVars": ${envVarsJson()},
-                    "command": ${commandString(wrapperFile)},
-                    "hardware": {
-                        "coreType": "${task.config.machineType}",
-                        "coresPerSlot": ${task.config.cpus}
-                    },
-                    "onDemandLicenseSeller": ${onDemandLicenseSeller()}
-                }
-            ]
+        def config = ["coreType": task.config.machineType,
+                      "coresPerSlot": task.config.cpus]
+
+        def wallTime = task.config.ext.wallTime
+        
+        // task.config.ext implementation either returns an empty list or the value
+        if (wallTime != null) { 
+            config["walltime"] = wallTime
         }
-        """
+
+        return config
+    }
+
+    protected Map jobAnalyseConfig(
+        analysisCode,
+        analysisVersion,
+        command,
+        rescaleLicense,
+        onDemandLicenseSeller,
+        userDefinedLicenseSettings
+    ) {
+        List<String> errorMessages = []
+        if (analysisCode == null) {
+            errorMessages << "Error: Job analysis software is not set in process. Set analysis software using ext.analysisCode in process directives."
+        }
+
+        if (analysisVersion == null) {
+            errorMessages << "Error: Job analysis version is not set in process. Set analysis version using ext.analysisVersion in process directives."
+        }
+
+        if ((onDemandLicenseSeller != null && userDefinedLicenseSettings != null) ||
+            (rescaleLicense != null && userDefinedLicenseSettings != null)) {
+            errorMessages << "Error: On-Demand / Rescale License and User Defined Licenses can not both be set."
+        }
+
+        // Rescale License defaults to false
+        if (rescaleLicense == null) {
+            rescaleLicense = false
+        }
+
+        if (!errorMessages.isEmpty()) {
+            throw new AbortOperationException(errorMessages.join("\n"))
+        }
+
+        def config = [
+            "analysis": [
+                "code": analysisCode,
+                "version": analysisVersion
+            ],
+            "useRescaleLicense": rescaleLicense,
+            "envVars": envVarsJson(),
+            "command": command,
+            "hardware": hardwareConfig(),
+            "onDemandLicenseSeller": onDemandLicenseSeller,
+            "userDefinedLicenseSettings": userDefinedLicenseSettings
+        ]
+
+        return config
+
+    }
+
+    protected String jobConfigurationJson(Path wrapperFile) {
+        List<String> errorMessages = []
+        if (task.config.ext.jobAnalyses == null) {
+            errorMessages << "Error: Job analysis software is not set in process. Set analysis software using ext.jobAnalyses in process directives."
+        }
+
+        if (!errorMessages.isEmpty()) {
+            throw new AbortOperationException(errorMessages.join("\n"))
+        }
+
+        def jobAnalyses = task.config.ext.jobAnalyses
+        def analysisConfig = []
+
+        for (int i = 0; i < jobAnalyses.size(); i++) {
+            def command = ":"
+            if (i == jobAnalyses.size() - 1) {
+                command = commandString(wrapperFile)   
+            }
+
+            analysisConfig.add(jobAnalyseConfig(
+                    jobAnalyses[i].analysisCode,
+                    jobAnalyses[i].analysisVersion,
+                    command,
+                    jobAnalyses[i].rescaleLicense,
+                    jobAnalyses[i].onDemandLicenseSeller,
+                    jobAnalyses[i].userDefinedLicenseSettings
+                ))
+        }
+        
+
+        def config = [
+            "name": task.name,
+            "jobanalyses": analysisConfig
+        ]
+
+        if (task.config.ext.billingPriorityValue != null) {
+            config["billingPriorityValue"] = task.config.ext.billingPriorityValue
+        }
+
+        if (task.config.ext.projectId != null) {
+            config["project_id"] = task.config.ext.projectId
+        }
+
+        return new JsonBuilder(config).toString() 
     }
 
     protected String storageConfigurationJson() {

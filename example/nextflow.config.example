@@ -1,0 +1,24 @@
+plugins {
+  id 'nf-rescale-hpc@0.4.0'
+}
+
+process {
+    executor='rescale-executor'
+    withName: '<process name>' {
+    ext.jobAnalyses=[[
+        analysisCode: "<analysis code>",
+        analysisVersion: "<version>",
+        // rescaleLicense: true,
+        // onDemandLicenseSeller: ["code":"<code>", "name":"<name>"],
+        // userDefinedLicenseSettings: ['featureSets':[['name':'<name>', 'features': [['name':'<name>', 'count':<count>]]]]]
+        ]]
+    machineType="<hardware>"
+    ext.projectId='<id>'
+    cpus=<cpu>
+  }
+}
+
+env {
+  RESCALE_PLATFORM_URL = "https://platform-stage.rescale.com"
+  RESCALE_CLUSTER_TOKEN = "<API Token>"
+}

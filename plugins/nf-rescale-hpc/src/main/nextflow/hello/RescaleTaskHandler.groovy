@@ -100,6 +100,35 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         return connection
     }
 
+    protected String parseError(Object json, String path = "") {
+        String result = ""
+
+        if (json instanceof List) {
+            json.each {item -> 
+                result += parseError(item, path)
+            }
+            
+        } else if (json instanceof Map) {
+            json.each { key, value ->
+                if (key == 'projectId') {
+                    List projectIds = getProjectId().collect { "${it.id} -> ${it.name}" }
+
+                    String availableIds = "Available project (id -> name): ${projectIds.join(', ')}. Please select the approprate project id."
+                    value.add(availableIds)
+                }
+
+                if (value instanceof List && value.every { it instanceof String }) {
+                    result += "${path}${key} has an error: ${value.join(', ')}\n"
+
+                } else {
+                    result += parseError(value, "${path}${key} -> ")
+                }
+            }
+        }
+
+        return result
+    }
+
     protected Map<String,String> createJob() {
         HttpURLConnection connection = this.createConnection('/api/v2/jobs/')
         connection.setRequestMethod('POST')
@@ -117,8 +146,9 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
             writer -> writer.write(bodyJson)
         }
 
+        def slurper = new JsonSlurper()
+
         if (connection.getResponseCode() >= 200 && connection.getResponseCode() < 400) {
-            def slurper = new JsonSlurper()
             def content = slurper.parseText(connection.inputStream.text)
 
             return content
@@ -127,7 +157,9 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
             def errorMessage = "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
             
             if (connection.errorStream != null) {
-                errorMessage += "\nError Message: $connection.errorStream.text"
+                def errorJson = slurper.parse(connection.errorStream)
+
+                errorMessage += "\nError Message: ${parseError(errorJson)}"
             }
     
             throw new AbortOperationException(errorMessage)
@@ -146,7 +178,9 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
             def errorMessage = "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
             
             if (connection.errorStream != null) {
-                errorMessage += "\nError Message: $connection.errorStream.text"
+                def errorJson = new JsonSlurper().parse(connection.errorStream)
+
+                errorMessage += "\nError Message: ${parseError(errorJson)}"
             }
     
             throw new AbortOperationException(errorMessage)
@@ -159,8 +193,9 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
         connection.doInput = true
 
+        def slurper = new JsonSlurper()
+        
         if (connection.getResponseCode() >= 200 && connection.getResponseCode() < 400) {
-            def slurper = new JsonSlurper()
             def content = slurper.parseText(connection.inputStream.text)
             
             return content['results']
@@ -169,7 +204,9 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
             def errorMessage = "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
             
             if (connection.errorStream != null) {
-                errorMessage += "\nError Message: $connection.errorStream.text"
+                def errorJson = slurper.parse(connection.errorStream)
+
+                errorMessage += "\nError Message: ${parseError(errorJson)}"
             }
     
             throw new AbortOperationException(errorMessage)
@@ -193,8 +230,9 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
             writer -> writer.write(bodyJson)
         }
 
+        def slurper = new JsonSlurper()
+        
         if (connection.getResponseCode() >= 200 && connection.getResponseCode() < 400) {
-            def slurper = new JsonSlurper()
             def content = slurper.parseText(connection.inputStream.text)
 
             return content
@@ -203,7 +241,9 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
             def errorMessage = "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
             
             if (connection.errorStream != null) {
-                errorMessage += "\nError Message: $connection.errorStream.text"
+                def errorJson = slurper.parse(connection.errorStream)
+
+                errorMessage += "\nError Message: ${parseError(errorJson)}"
             }
     
             throw new AbortOperationException(errorMessage)
@@ -218,6 +258,31 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
         if (connection.getResponseCode() >= 200 && connection.getResponseCode() < 400) {
             log.trace "[Rescale Executor]: Job $jobId Stopped"
+        } else {
+            def errorMessage = "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
+            
+            if (connection.errorStream != null) {
+                def errorJson = new JsonSlurper().parse(connection.errorStream)
+
+                errorMessage += "\nError Message: ${parseError(errorJson)}"
+            }
+    
+            throw new AbortOperationException(errorMessage)
+        }
+    }
+
+    protected List<Map> getProjectId() {
+        def connection = this.createConnection("/api/v2/users/me/projects/")
+        connection.setRequestMethod('GET')
+
+        connection.doInput = true
+
+        if (connection.getResponseCode() >= 200 && connection.getResponseCode() < 400) {
+            def slurper = new JsonSlurper()
+            def content = slurper.parseText(connection.inputStream.text)
+            
+            return content['results']
+
         } else {
             def errorMessage = "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
             
@@ -280,7 +345,6 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
         def jobStatus = getStatuses(jobId)[0]["status"]
         def result = jobStatus in RUNNING_AND_COMPLETED
-
 
         if (currentStatus != jobStatus) {
             currentStatus = jobStatus
