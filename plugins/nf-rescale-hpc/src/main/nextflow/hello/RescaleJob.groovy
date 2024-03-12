@@ -111,7 +111,8 @@ class RescaleJob {
         def config = [
             "analysis": [
                 "code": analysisCode,
-                "version": analysisVersion
+                "version": analysisVersion,
+                "flags": {"igCv": true}
             ],
             "useRescaleLicense": rescaleLicense,
             "envVars": envVarsJson(),
