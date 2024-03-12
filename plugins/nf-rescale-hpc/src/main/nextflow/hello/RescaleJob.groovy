@@ -112,7 +112,7 @@ class RescaleJob {
             "analysis": [
                 "code": analysisCode,
                 "version": analysisVersion,
-                "flags": {"igCv": true}
+                "flags": ["igCv": true]
             ],
             "useRescaleLicense": rescaleLicense,
             "envVars": envVarsJson(),
