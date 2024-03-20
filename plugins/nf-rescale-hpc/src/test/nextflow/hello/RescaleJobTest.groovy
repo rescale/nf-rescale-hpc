@@ -103,7 +103,8 @@ class RescaleJobTest extends Specification {
 
         then: 'return map with correct config'
         value == [
-            "analysis":["code":"test", "version":"testVersion", "flags": ["igCv": true]],
+            "analysis":["code":"test", "version":"testVersion"],
+            "flags": ["igCv": true],
             "useRescaleLicense":"true",
             "envVars":["test":'var'],
             "command":"test command",
@@ -139,7 +140,8 @@ class RescaleJobTest extends Specification {
 
         then: 'return map with correct config'
         value == [
-            "analysis":["code":"test", "version":"testVersion", "flags": ["igCv": true]],
+            "analysis":["code":"test", "version":"testVersion"],
+            "flags": ["igCv": true],
             "useRescaleLicense":false,
             "envVars":["test":'var'],
             "command":"test command",
