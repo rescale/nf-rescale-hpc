@@ -1,23 +1,15 @@
 package nextflow.hello
 
-import java.nio.file.Paths
-import java.nio.file.Path
-import java.net.URL
-import java.net.HttpURLConnection
-import groovy.json.JsonSlurper
-
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import nextflow.exception.AbortOperationException
 import nextflow.executor.Executor
-import nextflow.executor.GridTaskHandler
 import nextflow.processor.TaskHandler
 import nextflow.processor.TaskMonitor
 import nextflow.processor.TaskPollingMonitor
 import nextflow.processor.TaskRun
-import nextflow.processor.TaskStatus
 import nextflow.util.Duration
 import nextflow.util.ServiceName
-import nextflow.exception.AbortOperationException
 import org.pf4j.ExtensionPoint
 
 @Slf4j
