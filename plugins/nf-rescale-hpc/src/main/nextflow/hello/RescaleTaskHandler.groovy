@@ -188,23 +188,32 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
     }
 
     protected List<Map<String,String>> getStatuses(String jobId) {
-        def connection = this.createConnection("/api/v2/jobs/$jobId/statuses/")
+        def endpoint = "/api/v2/jobs/$jobId/statuses/"
+        def connection = this.createConnection(endpoint)
         connection.setRequestMethod('GET')
 
         connection.doInput = true
 
         def slurper = new JsonSlurper()
-        
-        if (connection.getResponseCode() >= 200 && connection.getResponseCode() < 400) {
+
+        def responseCode = connection.getResponseCode()
+        if (responseCode >= 200 && responseCode < 400) {
             def content = slurper.parseText(connection.inputStream.text)
             
             return content['results']
 
         } else {
-            def errorMessage = "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
-            
-            if (connection.errorStream != null) {
-                def errorJson = slurper.parse(connection.errorStream)
+            def errorMessage = "Error: ${responseCode} - ${connection.getResponseMessage()}"
+
+            if (responseCode == 504) {
+                // We make multiple requests to check the statuses of the job,
+                // these requests sometimes fail with a 504. We don't want to terminate the whole flow
+                // when this happens. See PUP-1212
+                log.warn("Ignoring the response to the request to $endpoint because it returned: $errorMessage")
+                return []
+
+            } else if (connection.errorStream != null) {
+                errorMessage = "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
 
                 errorMessage += "\nError Message: ${parseError(errorJson)}"
             }

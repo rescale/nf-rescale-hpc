@@ -209,6 +209,29 @@ class RescaleTaskHandlerTest extends Specification {
             e.message == "Error: 400 - Bad Request"
     }
 
+    def 'getStatuses should ignore 504 errors' () {
+        given: 'a RescaleTaskHandler that encounters a 504 error'
+        def executor = Mock(RescaleExecutor)
+        def httpURLConnection = Mock(HttpURLConnection) {
+            getResponseMessage() >> "Gateway Timeout"
+            getResponseCode() >> 504
+        }
+
+        def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+            createConnection(_) >> httpURLConnection
+        }
+
+        when: 'getStatuses is called'
+        handlerSpy.getStatuses("xJobId")
+
+        then: 'no exception is thrown'
+        noExceptionThrown()
+    }
+
     def 'should return true and status RUNNING when job has status' () {
         given: 'a RescaleTaskHandler'
         // Spy on class
