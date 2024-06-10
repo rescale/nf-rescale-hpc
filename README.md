@@ -145,7 +145,9 @@ To launch a Rescale Job using Nextflow
     ```
     As stated above replace ```<personal-access-token>``` and ```<nextflow-file>``` 
 
-    Make sure to move ```nextflow.config``` and ```nextflow-file``` inside ```nf-rescale-hpc```, and move any input file into ```~/storage*/projectdata``` 
+    Make sure to move ```nextflow.config``` and ```nextflow-file``` inside ```nf-rescale-hpc```, and move any input file into ```~/storage*/projectdata```
+
+__4.1 For a step by step tutorial see the [running a Nextlow job on using the nf-rescale-hpc plugin](running-nf-rescale-hpc-jobs.md).
 
 ## Potential Non-Error Failures
 ### 1. Pre-mature termination
