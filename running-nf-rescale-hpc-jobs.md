@@ -37,7 +37,7 @@ We'll create a new job in the platform
     
     """
     echo 'PUP-1212 sleeping' > results.txt
-    sleep 18000
+    sleep 180
     echo 'PUP-1212 awake' > results.txt
     """
     }
