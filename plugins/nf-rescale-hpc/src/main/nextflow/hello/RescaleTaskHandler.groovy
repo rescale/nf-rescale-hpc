@@ -124,6 +124,8 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
                     result += parseError(value, "${path}${key} -> ")
                 }
             }
+        } else if (json instanceof String) {
+            result = "${path}Error: ${json}\n"
         }
 
         return result
@@ -259,6 +261,46 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
         }
     }
 
+    protected Map<String,String> submitCustomFields(String jobId) {
+        def bodyJson = rescaleJobConfig.customFieldsConfigurationJson()
+        if (!bodyJson) {
+            return [:]
+        }
+
+        def connection = this.createConnection("/api/v2/jobs/$jobId/custom-fields/")
+        connection.setRequestMethod('POST')
+
+        // Header
+        connection.setRequestProperty('Content-Type', 'application/json')
+
+        connection.doOutput = true
+        connection.doInput = true
+
+        // Body
+        connection.outputStream.withWriter {
+            writer -> writer.write(bodyJson)
+        }
+
+        def slurper = new JsonSlurper()
+        
+        if (connection.getResponseCode() >= 200 && connection.getResponseCode() < 400) {
+            def content = slurper.parseText(connection.inputStream.text)
+
+            return content
+
+        } else {
+            def errorMessage = "Error: ${connection.getResponseCode()} - ${connection.getResponseMessage()}"
+            
+            if (connection.errorStream != null) {
+                def errorJson = slurper.parse(connection.errorStream)
+
+                errorMessage += "\nError Message: ${parseError(errorJson)}"
+            }
+
+            throw new AbortOperationException(errorMessage)
+        }
+    }
+
     protected void stopJob(String jobId) {
         HttpURLConnection connection = this.createConnection("/api/v2/jobs/$jobId/stop/")
         connection.setRequestMethod('POST')
@@ -320,6 +362,9 @@ class RescaleTaskHandler extends TaskHandler implements FusionAwareTask {
 
         // Temporary HPS Solution
         attachStorage(jobId)
+
+        // Submit custom fields
+        submitCustomFields(jobId)
 
         submitJob(jobId)
     }

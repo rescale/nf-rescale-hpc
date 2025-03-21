@@ -108,7 +108,10 @@ To launch a Rescale Job using Nextflow
 
     **ext.wallTime** (Optional)(datatype: `int`): The time a Rescale Job will be allowed to run. Options are: 'INSTANT’ for On Demand Priority, 'ON_DEMAND’ for On Demand Economy, 'RESERVED’ for On Demand Reserved.
 
-    **ext.projectId** (Optional)(datatype: `String`): 
+    **ext.projectId** (Optional)(datatype: `String`)
+
+    **ext.customFields** (Optional)(datatype: `Map`): Custom Field values that should be assigned to jobs.
+
 
     ### Future Parameters to be supported (Third Pass)
     ---
