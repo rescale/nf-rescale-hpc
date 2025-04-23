@@ -4,6 +4,8 @@ import java.net.URL
 import java.net.HttpURLConnection
 import java.nio.file.Paths
 
+import groovy.json.JsonBuilder
+
 import nextflow.processor.TaskRun
 import nextflow.processor.TaskRun
 import nextflow.processor.TaskConfig
@@ -289,7 +291,7 @@ class RescaleJobTest extends Specification {
         value == Paths.get('/notHome/dir/test')
     }
 
-    def 'should return a hardware configuraiton json with walltime'() {
+    def 'should return a hardware configuration json with walltime'() {
         given: "a RescaleJob"
 
         // Spy on class
@@ -315,7 +317,7 @@ class RescaleJobTest extends Specification {
         value == ["coreType":"testMachine","coresPerSlot":123]
     }
 
-    def 'should return a hardware configuraiton json with walltime'() {
+    def 'should return a hardware configuration json with walltime'() {
         given: "a RescaleJob"
 
         // Spy on class
@@ -364,4 +366,72 @@ class RescaleJobTest extends Specification {
         then: 'return json with correct config'
         thrown(AbortOperationException)
     }
+
+    def 'absent custom field config should return null'() {
+        given: "a RescaleJob"
+
+        def taskConfig = new TaskConfig()
+        taskConfig.ext = ['customFields': null]
+
+        def task = Mock(TaskRun) {
+            config >> taskConfig
+        }
+        def executor = Mock(RescaleExecutor) {
+            getOutputDir() >> Paths.get('/test/dir')
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor])
+
+        when: 'customFieldsConfigurationJson is called'
+        def value = handlerSpy.customFieldsConfigurationJson()
+
+        then: 'return null'
+        value == null
+    }
+
+    def 'valid custom field config should return json'() {
+        given: "a RescaleJob"
+
+        def taskConfig = new TaskConfig()
+        taskConfig.ext = ['customFields': ['Context Field 1': "123"]]
+        def task = Mock(TaskRun) {
+            config >> taskConfig
+        }
+        def executor = Mock(RescaleExecutor) {
+            getOutputDir() >> Paths.get('/test/dir')
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor])
+
+        when: 'customFieldsConfigurationJson is called'
+        def value = handlerSpy.customFieldsConfigurationJson()
+
+        then: 'return custom field json'
+        value == new JsonBuilder(['Context Field 1': "123"]).toString()
+    }
+
+    def 'custom field exception should return null'() {
+        given: "a RescaleJob"
+
+        def badObject = new Expando()
+        badObject.getAt = { throw new RuntimeException("Boom from getAt") }
+
+        def taskConfig = new TaskConfig()
+        taskConfig.ext = [
+            'customFields': ['Context Field 1': badObject]
+        ]
+        def task = Mock(TaskRun) {
+            config >> taskConfig
+        }
+        def executor = Mock(RescaleExecutor) {
+            getOutputDir() >> Paths.get('/test/dir')
+        }
+        def handlerSpy = Spy(RescaleJob, constructorArgs: [task, executor])
+
+        when: 'customFieldsConfigurationJson is called'
+        def value = handlerSpy.customFieldsConfigurationJson()
+
+        then: 'return null'
+        value == null
+
+    }
+
 }

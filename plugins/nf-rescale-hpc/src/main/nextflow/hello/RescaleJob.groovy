@@ -179,4 +179,20 @@ class RescaleJob {
         """
     }
 
+    protected String customFieldsConfigurationJson() {
+        def config = task.config.ext.customFields
+        if (config == null) {
+            return null
+        }
+        else {
+            try {
+                return new JsonBuilder(config).toString()
+            }
+            catch (Exception e) {
+                log.error("Error: failed to parse custom fields. Returning null json.")
+                return null
+            }
+        }
+    }
+
 }

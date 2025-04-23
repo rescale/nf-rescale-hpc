@@ -424,7 +424,7 @@ class RescaleTaskHandlerTest extends Specification {
     }
 
     def 'should attach storage to job when attachStorage is called' () {
-         given: 'a RescaleTaskHandler'
+        given: 'a RescaleTaskHandler'
         def executor = Mock(RescaleExecutor)
         // Mock HttpURLConnection
         def inputStream = new ByteArrayInputStream('{"id":"storage123"}'.getBytes())
@@ -563,7 +563,7 @@ class RescaleTaskHandlerTest extends Specification {
             e.message == "Error: 400 - Bad Request"
     }
 
-    def 'parseError should return a formated error string' () {
+    def 'parseError should return a formatted error string' () {
         given: 'a RescaleTaskHandler'
         // Spy on class
         def executor = Mock(RescaleExecutor)
@@ -579,7 +579,7 @@ class RescaleTaskHandlerTest extends Specification {
         def value = handlerSpy.parseError(json)
 
 
-        then: 'formate the error json'
+        then: 'format the error json'
         value == "property1 -> property2 has an error: testError1\nproperty1 -> property3 has an error: testError2\n"
     }
 
@@ -600,7 +600,7 @@ class RescaleTaskHandlerTest extends Specification {
         def value = handlerSpy.parseError(json)
 
 
-        then: 'formate the error json with available projectId'
+        then: 'format the error json with available projectId'
         value == "projectId has an error: invalid project id, Available project (id -> name): 123 -> project1. Please select the approprate project id.\n"
     }
 
@@ -657,6 +657,139 @@ class RescaleTaskHandlerTest extends Specification {
         then: 'throw an exception' 
             Exception e  = thrown()
             e.message == "Error: 400 - Bad Request"
+    }
+
+    def 'submitCustomFields should return empty map when no custom fields are provided' () {
+        given: 'a RescaleTaskHandler'
+        def executor = Mock(RescaleExecutor)
+
+        def jobConfig = Mock(RescaleJob) {
+            customFieldsConfigurationJson() >> null
+        }
+
+        def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+        }
+
+        handlerSpy.metaClass.setProperty(handlerSpy, 'rescaleJobConfig', jobConfig)
+
+
+        when: 'submitCustomFields is called'
+        def content = handlerSpy.submitCustomFields()
+
+        then: 'return an empty map' 
+            content == [:]
+    }
+
+    def 'successful submitCustomFields post should return custom field map' () {
+        given: "a RescaleTaskHandler"
+
+        def executor = Mock(RescaleExecutor)
+        // Mock HttpURLConnection
+        def inputStream = new ByteArrayInputStream('{"Context Field 1":"123"}'.getBytes())
+        def outputStream = new ByteArrayOutputStream()
+        def httpURLConnection = Mock(HttpURLConnection) {
+            getInputStream() >> inputStream
+            getOutputStream() >> outputStream
+            getResponseCode() >> 200
+        }
+
+        def jobConfig = Mock(RescaleJob) {
+            customFieldsConfigurationJson() >> "{}"
+        }
+
+        // Spy on class
+        def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
+
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+            createConnection(_) >> httpURLConnection
+        }
+        handlerSpy.metaClass.setProperty(handlerSpy, 'rescaleJobConfig', jobConfig)
+
+        when: 'submitCustomFields is called'
+        def content = handlerSpy.submitCustomFields()
+
+        then: 'return the custom field' 
+            content == ["Context Field 1":"123"]
+    }
+
+    def 'submitCustomFields list should return list of key value pairs' () {
+        given: "a RescaleTaskHandler"
+
+        def executor = Mock(RescaleExecutor)
+        // Mock HttpURLConnection
+        def inputStream = new ByteArrayInputStream('{"Context Field 1":"123","Input Field 1":123}'.getBytes())
+        def outputStream = new ByteArrayOutputStream()
+        def httpURLConnection = Mock(HttpURLConnection) {
+            getInputStream() >> inputStream
+            getOutputStream() >> outputStream
+            getResponseCode() >> 200
+        }
+
+        def jobConfig = Mock(RescaleJob) {
+            customFieldsConfigurationJson() >> "{}"
+        }
+
+        // Spy on class
+        def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
+
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+            createConnection(_) >> httpURLConnection
+        }
+        handlerSpy.metaClass.setProperty(handlerSpy, 'rescaleJobConfig', jobConfig)
+
+
+        when: 'submitCustomFields is called'
+        def content = handlerSpy.submitCustomFields()
+
+        then: 'return the custom fields' 
+            content == ["Context Field 1":"123","Input Field 1":123]       
+    }
+
+    def 'submitCustomFields post failure should throw exception' () {
+        given: "a RescaleTaskHandler"
+
+        def executor = Mock(RescaleExecutor)
+        def outputStream = new ByteArrayOutputStream()
+
+        // Mock HttpURLConnection
+        def httpURLConnection = Mock(HttpURLConnection) {
+            getOutputStream() >> outputStream
+            getResponseMessage() >> "Bad Request"
+            getResponseCode() >> 400
+        }
+
+        def jobConfig = Mock(RescaleJob) {
+            customFieldsConfigurationJson() >> "{}"
+        }
+
+        // Spy on class
+        def task = Mock(TaskRun) {
+            workDir >> Paths.get('/work/dir')
+            getEnvironment() >> ["RESCALE_CLUSTER_TOKEN":"test_token", "RESCALE_PLATFORM_URL":"https://example.com"]
+        }
+
+        def handlerSpy = Spy(RescaleTaskHandler, constructorArgs: [task, executor]) {
+            createConnection(_) >> httpURLConnection
+        }
+        handlerSpy.metaClass.setProperty(handlerSpy, 'rescaleJobConfig', jobConfig)
+
+
+        when: 'submitCustomFields is called'
+        def content = handlerSpy.submitCustomFields()
+
+        then: 'throw an exception' 
+            Exception e  = thrown()
+            e.message == "Error: 400 - Bad Request"   
     }
 
 }
